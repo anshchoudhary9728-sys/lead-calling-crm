@@ -9,8 +9,8 @@ import { Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
 export default function LoginPage() {
   const router = useRouter();
   const { setCurrentUser } = useAuth();
-  const [username, setUsername] = useState('rajesh.admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
