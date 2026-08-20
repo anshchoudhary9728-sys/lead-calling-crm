@@ -51,7 +51,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
   const isConverted = selectedStatus === 'CONVERTED';
 
 
-  const handleSaveCall = (e: React.FormEvent) => {
+  const handleSaveCall = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -73,7 +73,6 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
       // Ensure lead exists in crm-store (Supabase leads need to be injected first)
       const existingInStore = crmStore.getLeadById(lead.id);
       if (!existingInStore) {
-        // Inject Supabase lead into in-memory store so logCall can find it
         (crmStore as any).leads.unshift({ ...lead });
       }
 
@@ -85,6 +84,24 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
         selected_followup_at: followupISO,
         call_duration_seconds: parseInt(callDuration) || 45,
         deal_amount: isConverted ? parseFloat(dealAmount) || 0 : undefined,
+      });
+
+      // Update lead status in Supabase so it moves to correct section
+      let nextPlannedAt: string | null = null;
+      if (selectedStatus === 'FOLLOW_UP' && followupISO) {
+        nextPlannedAt = followupISO;
+      } else if (selectedStatus === 'NOT_REACHABLE') {
+        nextPlannedAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(); // +4 hours
+      }
+
+      await fetch(`/api/v1/leads/${lead.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_status: selectedStatus,
+          current_planned_call_at: nextPlannedAt,
+          next_followup_at: selectedStatus === 'FOLLOW_UP' ? followupISO : null,
+        }),
       });
 
       onSuccess();

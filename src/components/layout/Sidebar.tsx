@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -17,15 +17,32 @@ import {
   LogOut,
   Phone,
   FileSpreadsheet,
+  PhoneOff,
 } from 'lucide-react';
-import { crmStore } from '@/lib/crm-store';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { currentUser, logout } = useAuth();
-  const kpis = crmStore.getDashboardKPIs();
-
   const isExecutive = currentUser?.role === 'SALES_EXECUTIVE';
+
+  const [kpis, setKpis] = useState({
+    overdue_calls: 0,
+    followup_count: 0,
+    not_reachable_count: 0,
+  });
+
+  useEffect(() => {
+    const fetchKpis = () => {
+      fetch('/api/v1/kpis')
+        .then(r => r.json())
+        .then(data => { if (data.success) setKpis(data.kpis); })
+        .catch(() => {});
+    };
+    fetchKpis();
+    // Refresh KPIs every 60 seconds
+    const interval = setInterval(fetchKpis, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -33,11 +50,23 @@ export default function Sidebar() {
       name: 'New Inquiry',
       href: '/planned-calls',
       icon: PhoneCall,
-      badge: kpis.overdue_calls > 0 ? `${kpis.overdue_calls} Overdue` : `${kpis.calls_pending} Due`,
-      badgeColor: kpis.overdue_calls > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-sky-500 text-white',
+      badge: kpis.overdue_calls > 0 ? `${kpis.overdue_calls} Overdue` : null,
+      badgeColor: 'bg-rose-500 text-white animate-pulse',
     },
-    { name: 'Follow-ups', href: '/followups', icon: CalendarCheck, badge: kpis.todays_followups > 0 ? `${kpis.todays_followups}` : undefined },
-    { name: 'Not Reachable', href: '/leads?status=NOT_REACHABLE', icon: Phone, badge: kpis.not_reachable_count > 0 ? `${kpis.not_reachable_count}` : undefined, badgeColor: 'bg-amber-500 text-white' },
+    {
+      name: 'Follow-ups',
+      href: '/followups',
+      icon: CalendarCheck,
+      badge: kpis.followup_count > 0 ? `${kpis.followup_count}` : null,
+      badgeColor: 'bg-sky-500 text-white',
+    },
+    {
+      name: 'Not Reachable',
+      href: '/not-reachable',
+      icon: PhoneOff,
+      badge: kpis.not_reachable_count > 0 ? `${kpis.not_reachable_count}` : null,
+      badgeColor: 'bg-amber-500 text-white',
+    },
     { name: 'Leads Master', href: '/leads', icon: Users },
     { name: 'My Assigned Leads', href: '/my-leads', icon: UserCheck },
     { name: 'Call History Logs', href: '/calls', icon: Layers },

@@ -51,13 +51,11 @@ export default function PlannedCallsDashboard() {
       const res = await fetch('/api/v1/leads');
       const data = await res.json();
 
-      // Use ONLY Supabase data — never demo/seed data
+      // NEW INQUIRY = Only NEW status leads (FOLLOW_UP and NOT_REACHABLE have their own pages)
       let queue: Lead[] = (data.leads || []) as Lead[];
-
-      // Sort: overdue first, then by planned time ascending
       const now = new Date();
       queue = queue
-        .filter(l => l.current_status !== 'CONVERTED' && l.current_status !== 'LOST' && l.current_status !== 'NOT_INTERESTED')
+        .filter(l => l.current_status === 'NEW')
         .sort((a, b) => {
           const aTime = a.current_planned_call_at ? new Date(a.current_planned_call_at).getTime() : Infinity;
           const bTime = b.current_planned_call_at ? new Date(b.current_planned_call_at).getTime() : Infinity;
