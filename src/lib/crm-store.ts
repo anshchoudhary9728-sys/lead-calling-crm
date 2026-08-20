@@ -689,7 +689,8 @@ class CRMStore {
   }): { success: boolean; lead_id?: string; unique_lead_id?: string; message: string } {
     try {
       // 1. Clean & normalize phone number
-      const cleanPhone = payload.mobile_number.replace(/\D/g, '');
+      const rawPhone = String(payload.mobile_number || '');
+      const cleanPhone = rawPhone.replace(/\D/g, '');
       const normalizedPhone = cleanPhone.length === 10 ? `+91 ${cleanPhone}` : `+91 ${cleanPhone.slice(-10)}`;
 
       // 2. Deduplication check
