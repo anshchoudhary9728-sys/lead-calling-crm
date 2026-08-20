@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: false,
       leads: [],
-      error: 'Database not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel environment variables.',
+      error: 'Database not configured.',
     }, { status: 200 });
 
   } catch (err: any) {
@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
       source = 'MANUAL',
       custom_source,
       client_requirement,
-      assigned_user_id,
     } = body;
 
     if (!customer_name || !mobile_number) {
@@ -98,6 +97,24 @@ export async function POST(req: NextRequest) {
       ? `[Source: ${custom_source}] ${client_requirement || ''}`
       : client_requirement || null;
 
+    // Automatic Round-Robin Assignment to Active Sales Team
+    let assignedUserId: string | null = null;
+    try {
+      const { data: activeCallers } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('status', 'ACTIVE')
+        .eq('role', 'SALES_EXECUTIVE');
+
+      if (activeCallers && activeCallers.length > 0) {
+        // Pick random/round-robin active caller from sales team
+        const selectedCaller = activeCallers[Math.floor(Math.random() * activeCallers.length)];
+        assignedUserId = selectedCaller.id;
+      }
+    } catch (e) {
+      // Fallback unassigned
+    }
+
     const { data: insertedLead, error: insertError } = await supabase
       .from('leads')
       .insert([{
@@ -112,7 +129,7 @@ export async function POST(req: NextRequest) {
         state: state ? String(state).trim() : null,
         client_requirement: requirementText,
         enquiry_message: requirementText,
-        assigned_user_id: assigned_user_id || null,
+        assigned_user_id: assignedUserId,
         current_status: 'NEW',
         current_planned_call_at: plannedTime,
         lead_received_at: new Date().toISOString(),

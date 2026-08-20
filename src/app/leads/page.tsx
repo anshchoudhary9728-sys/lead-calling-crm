@@ -421,18 +421,9 @@ export default function LeadsMasterPage() {
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Assign To Executive (Optional)</label>
-                <select
-                  value={newLeadForm.assigned_user_id}
-                  onChange={e => setNewLeadForm({ ...newLeadForm, assigned_user_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 font-semibold"
-                >
-                  <option value="">-- Unassigned (Available in General Queue) --</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
-                  ))}
-                </select>
+              <div className="p-2.5 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl text-[11px] font-semibold flex items-center">
+                <span className="w-2 h-2 rounded-full bg-purple-600 mr-2"></span>
+                <span>Automatic Assignment: Lead will be distributed directly to active Sales Team CRM queues.</span>
               </div>
 
               <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
