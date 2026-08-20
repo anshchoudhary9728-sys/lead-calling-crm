@@ -51,6 +51,12 @@ export default function PlannedCallsDashboard() {
       // NEW INQUIRY = Show ONLY NEW status leads
       let queue: Lead[] = allLeads
         .filter(l => l.current_status === 'NEW')
+        .filter(l => {
+          if (currentUser?.role === 'SALES_EXECUTIVE') {
+            return !l.assigned_user_id || l.assigned_user_id === currentUser.id;
+          }
+          return true;
+        })
         .sort((a, b) => {
           const aTime = a.current_planned_call_at ? new Date(a.current_planned_call_at).getTime() : Infinity;
           const bTime = b.current_planned_call_at ? new Date(b.current_planned_call_at).getTime() : Infinity;

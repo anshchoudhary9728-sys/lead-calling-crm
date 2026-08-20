@@ -20,7 +20,10 @@ export default function MyAssignedLeadsPage() {
     })
       .then(r => r.json())
       .then(data => {
-        const all: Lead[] = data.leads || [];
+        let all: Lead[] = data.leads || [];
+        if (currentUser?.role === 'SALES_EXECUTIVE') {
+          all = all.filter(l => l.assigned_user_id === currentUser.id);
+        }
         setLeads(all);
       })
       .catch(() => setLeads([]));
