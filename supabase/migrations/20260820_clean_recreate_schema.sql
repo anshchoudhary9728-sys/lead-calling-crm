@@ -203,14 +203,17 @@ CREATE TABLE notifications (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. ENABLE RLS POLICIES FOR WEBHOOK INSERTS
+-- 10. ENABLE RLS POLICIES
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE call_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE followups ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "Allow public all users" ON users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public webhook insert leads" ON leads FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public select leads" ON leads FOR SELECT USING (true);
 CREATE POLICY "Allow public update leads" ON leads FOR UPDATE USING (true);
 
-CREATE POLICY "Allow public select call_logs" ON call_logs FOR ALL USING (true);
-CREATE POLICY "Allow public select followups" ON followups FOR ALL USING (true);
+CREATE POLICY "Allow public all call_logs" ON call_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all followups" ON followups FOR ALL USING (true) WITH CHECK (true);
+
