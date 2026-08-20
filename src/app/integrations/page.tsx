@@ -8,6 +8,8 @@ import { FileSpreadsheet, Key, CheckCircle, RefreshCw, Send, AlertCircle } from 
 export default function IntegrationsPage() {
   const sources = crmStore.getSourceSettings();
   const [webhookUrl, setWebhookUrl] = useState('http://localhost:3000/api/v1/integrations/google-sheets');
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
