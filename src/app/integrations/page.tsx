@@ -7,8 +7,13 @@ import { FileSpreadsheet, Key, CheckCircle, RefreshCw, Send, AlertCircle } from 
 
 export default function IntegrationsPage() {
   const sources = crmStore.getSourceSettings();
-  const [logs, setLogs] = useState(crmStore.getIntegrationLogs());
-  const [testResult, setTestResult] = useState<string | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState('http://localhost:3000/api/v1/integrations/google-sheets');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWebhookUrl(`${window.location.origin}/api/v1/integrations/google-sheets`);
+    }
+  }, []);
 
   const handleSimulateWebhook = async (sourceName: LeadSource) => {
     setTestResult(null);
@@ -59,7 +64,7 @@ export default function IntegrationsPage() {
         <p className="text-xs font-bold text-sky-400 uppercase tracking-wider">Live Webhook Endpoint for Google Sheets / Justdial / IndiaMART</p>
         <div className="flex items-center space-x-2 bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-xs text-emerald-400">
           <span>POST</span>
-          <span className="text-white font-bold">http://localhost:3000/api/v1/integrations/google-sheets</span>
+          <span className="text-white font-bold">{webhookUrl}</span>
         </div>
         <p className="text-[11px] text-slate-400">
           Configure your Google Apps Script or Webhook supplier to POST JSON payloads directly to this endpoint. Leads will be automatically normalized, deduplicated, assigned via Round-Robin, and scheduled for call in +10 minutes.
