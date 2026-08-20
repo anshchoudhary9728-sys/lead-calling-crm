@@ -24,6 +24,7 @@ export default function LeadsMasterPage() {
   const { currentUser } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLeadForCall, setSelectedLeadForCall] = useState<Lead | null>(null);
+  const [allLeads, setAllLeads] = useState<Lead[]>([]);
 
   // New Lead Modal State
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
@@ -49,8 +50,33 @@ export default function LeadsMasterPage() {
     date_range: 'all',
   });
 
-  const leads = crmStore.getLeads(filters);
+  // Load leads from Supabase only
+  React.useEffect(() => {
+    fetch('/api/v1/leads')
+      .then(r => r.json())
+      .then(data => setAllLeads(data.leads || []))
+      .catch(() => setAllLeads([]));
+  }, [refreshKey]);
+
+  // Apply filters to Supabase leads
+  const leads = React.useMemo(() => {
+    let result = [...allLeads];
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(l =>
+        l.unique_lead_id?.toLowerCase().includes(q) ||
+        l.customer_name?.toLowerCase().includes(q) ||
+        l.mobile_number?.includes(q) ||
+        (l.company_name && l.company_name.toLowerCase().includes(q))
+      );
+    }
+    if (filters.status !== 'all') result = result.filter(l => l.current_status === filters.status);
+    if (filters.source !== 'all') result = result.filter(l => l.source === filters.source);
+    return result;
+  }, [allLeads, filters]);
+
   const users = crmStore.getUsers();
+
 
   const handleCreateLead = (e: React.FormEvent) => {
     e.preventDefault();

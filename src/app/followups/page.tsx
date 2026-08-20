@@ -1,29 +1,44 @@
 'use client';
 
-import React, { useState } from 'react';
-import { crmStore } from '@/lib/crm-store';
+import React, { useState, useEffect } from 'react';
 import { formatIST } from '@/lib/timezone';
-import { CalendarCheck, CheckCircle, Clock, PhoneCall, CheckCircle2 } from 'lucide-react';
+import { CalendarCheck, PhoneCall } from 'lucide-react';
 import CallDrawer from '@/components/crm/CallDrawer';
 import { Lead } from '@/types/crm';
 
 export default function FollowupsPage() {
-  const followups = crmStore.getFollowups();
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLeadForCall, setSelectedLeadForCall] = useState<Lead | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleComplete = (id: string) => {
-    crmStore.markFollowupCompleted(id);
-    window.location.reload();
-  };
+  useEffect(() => {
+    fetch('/api/v1/leads')
+      .then(r => r.json())
+      .then(data => {
+        const all: Lead[] = data.leads || [];
+        // Show only FOLLOW_UP status leads sorted by planned call time
+        const followups = all
+          .filter(l => l.current_status === 'FOLLOW_UP')
+          .sort((a, b) => {
+            const aTime = a.current_planned_call_at ? new Date(a.current_planned_call_at).getTime() : Infinity;
+            const bTime = b.current_planned_call_at ? new Date(b.current_planned_call_at).getTime() : Infinity;
+            return aTime - bTime;
+          });
+        setLeads(followups);
+      })
+      .catch(() => setLeads([]));
+  }, [refreshKey]);
+
+  const now = new Date();
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-xl font-black text-slate-900 flex items-center">
-          <CalendarCheck className="w-6 h-6 mr-2 text-sky-600" /> DEDICATED FOLLOW-UPS TRACKER
+          <CalendarCheck className="w-6 h-6 mr-2 text-sky-600" /> FOLLOW-UPS TRACKER
         </h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          Track, manage, and complete scheduled customer follow-up calls.
+          Leads where follow-up call is scheduled. Overdue follow-ups are highlighted in red.
         </p>
       </div>
 
@@ -32,68 +47,49 @@ export default function FollowupsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4">Follow-up Date & Time</th>
+                <th className="py-3.5 px-4">Planned Call Time</th>
                 <th className="py-3.5 px-4">Unique ID</th>
                 <th className="py-3.5 px-4">Customer Name</th>
                 <th className="py-3.5 px-4">Mobile</th>
-                <th className="py-3.5 px-4">Remarks</th>
-                <th className="py-3.5 px-4">Assigned Caller</th>
-                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4">Source</th>
+                <th className="py-3.5 px-4">Requirement</th>
                 <th className="py-3.5 px-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-              {followups.length === 0 ? (
+              {leads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 italic">
-                    No follow-ups recorded yet.
+                  <td colSpan={7} className="py-10 text-center text-slate-400 italic">
+                    No follow-up leads found. Follow-ups appear here after marking a lead as "Follow-up" during a call.
                   </td>
                 </tr>
               ) : (
-                followups.map(fol => {
-                  const lead = crmStore.getLeadById(fol.lead_id);
-                  const isCompleted = fol.followup_status === 'COMPLETED';
-
+                leads.map(lead => {
+                  const isOverdue = lead.current_planned_call_at && new Date(lead.current_planned_call_at) < now;
                   return (
-                    <tr key={fol.id} className="hover:bg-slate-50">
-                      <td className="py-3.5 px-4 font-bold text-sky-700 whitespace-nowrap">
-                        {formatIST(fol.followup_at)}
+                    <tr key={lead.id} className={`hover:bg-slate-50 ${isOverdue ? 'bg-rose-50' : ''}`}>
+                      <td className="py-3 px-4">
+                        <span className={`font-bold ${isOverdue ? 'text-rose-600' : 'text-sky-600'}`}>
+                          {lead.current_planned_call_at ? formatIST(lead.current_planned_call_at) : '—'}
+                        </span>
+                        {isOverdue && <span className="ml-1 text-[10px] text-rose-500 font-bold">OVERDUE</span>}
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
-                        {fol.lead_unique_id}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">{fol.customer_name}</td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-800">{fol.mobile_number}</td>
-                      <td className="py-3.5 px-4 max-w-xs truncate italic">"{fol.remarks}"</td>
-                      <td className="py-3.5 px-4 font-medium">{fol.assigned_user_name}</td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                            isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
-                          }`}
-                        >
-                          {fol.followup_status}
+                      <td className="py-3 px-4 font-mono text-sky-700 font-bold">{lead.unique_lead_id}</td>
+                      <td className="py-3 px-4 font-semibold">{lead.customer_name}</td>
+                      <td className="py-3 px-4 font-mono">{lead.mobile_number}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">
+                          {lead.source}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center space-x-2">
-                          {!isCompleted && (
-                            <button
-                              onClick={() => handleComplete(fol.id)}
-                              className="px-2.5 py-1 text-[11px] font-bold bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg"
-                            >
-                              Mark Done
-                            </button>
-                          )}
-                          {lead && (
-                            <button
-                              onClick={() => setSelectedLeadForCall(lead)}
-                              className="px-2.5 py-1 text-[11px] font-bold bg-sky-600 text-white hover:bg-sky-700 rounded-lg flex items-center"
-                            >
-                              <PhoneCall className="w-3 h-3 mr-1" /> Call Now
-                            </button>
-                          )}
-                        </div>
+                      <td className="py-3 px-4 max-w-[200px] truncate text-slate-600">{lead.client_requirement || '—'}</td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setSelectedLeadForCall(lead)}
+                          className="bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center mx-auto"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5 mr-1.5" /> Call Now
+                        </button>
                       </td>
                     </tr>
                   );
@@ -108,7 +104,7 @@ export default function FollowupsPage() {
         <CallDrawer
           lead={selectedLeadForCall}
           onClose={() => setSelectedLeadForCall(null)}
-          onSuccess={() => setSelectedLeadForCall(null)}
+          onSuccess={() => { setSelectedLeadForCall(null); setRefreshKey(k => k + 1); }}
         />
       )}
     </div>

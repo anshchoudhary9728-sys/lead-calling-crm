@@ -282,7 +282,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
               <label className="block text-xs font-bold text-slate-700 mb-2">
                 Call Outcome <span className="text-rose-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedStatus('FOLLOW_UP')}
@@ -307,10 +307,24 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                 >
                   <PhoneCall className="w-5 h-5" />
                   Not Reachable
-                  <span className="text-[10px] font-normal opacity-70">Auto +4 Hr Retry</span>
+                  <span className="text-[10px] font-normal opacity-70">Auto +4 Hr</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('CONVERTED')}
+                  className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                    selectedStatus === 'CONVERTED'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-300'
+                  }`}
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  Converted
+                  <span className="text-[10px] font-normal opacity-70">Deal Won 🎉</span>
                 </button>
               </div>
             </div>
+
 
             {/* Conditional Follow-up Date/Time Picker */}
             {isFollowupRequired && (
