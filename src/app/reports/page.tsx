@@ -17,6 +17,8 @@ import {
   Download,
   PhoneCall,
   TrendingUp,
+  Activity,
+  ArrowRight,
 } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -59,7 +61,7 @@ export default function ReportsPage() {
     loadReportsData();
   }, [refreshKey]);
 
-  // Generate Month Options for filter dropdown (e.g. Current Year months)
+  // Generate Month Options for filter dropdown
   const monthOptions = useMemo(() => {
     const months = [];
     const now = new Date();
@@ -85,7 +87,7 @@ export default function ReportsPage() {
     startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
-    const currentMonthPrefix = todayStr.substring(0, 7); // 'YYYY-MM'
+    const currentMonthPrefix = todayStr.substring(0, 7);
 
     return leads.filter(lead => {
       const leadDateStr = lead.lead_received_at || lead.created_at || '';
@@ -244,13 +246,13 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-[#f4f6f9] min-h-screen">
       
       {/* Header Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center">
-            <BarChart3 className="w-6 h-6 mr-2 text-sky-600" /> LIVE REPORTS &amp; EMPLOYEE ANALYTICS
+            <BarChart3 className="w-6 h-6 mr-2 text-purple-700" /> LIVE REPORTS &amp; EMPLOYEE ANALYTICS
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Realtime database performance reports, employee caller breakdown, and date/month filters.
@@ -262,13 +264,13 @@ export default function ReportsPage() {
               setRefreshKey(k => k + 1);
               loadReportsData();
             }}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center shadow-sm transition"
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center shadow-sm transition"
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh
           </button>
           <button
             onClick={handleExportCSV}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center shadow-sm transition"
+            className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center shadow-md transition"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
           </button>
@@ -278,8 +280,8 @@ export default function ReportsPage() {
       {/* COMPREHENSIVE FILTER TOOLBAR */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-          <span className="text-xs font-bold text-slate-700 flex items-center">
-            <Filter className="w-3.5 h-3.5 mr-1.5 text-sky-600" /> Filter Reports &amp; Performance
+          <span className="text-xs font-bold text-purple-900 flex items-center">
+            <Filter className="w-3.5 h-3.5 mr-1.5 text-purple-600" /> Filter Reports &amp; Performance
           </span>
           {(dateFilter !== 'ALL_TIME' || selectedMonth !== 'ALL' || selectedEmployeeId !== 'ALL' || selectedSource !== 'ALL' || employeeSearchText) && (
             <button
@@ -310,7 +312,7 @@ export default function ReportsPage() {
                 setDateFilter(e.target.value);
                 if (e.target.value !== 'ALL_TIME') setSelectedMonth('ALL');
               }}
-              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500"
+              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
             >
               <option value="ALL_TIME">All Time</option>
               <option value="TODAY">Today</option>
@@ -330,7 +332,7 @@ export default function ReportsPage() {
                 setSelectedMonth(e.target.value);
                 if (e.target.value !== 'ALL') setDateFilter('ALL_TIME');
               }}
-              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500"
+              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
             >
               <option value="ALL">All Months</option>
               {monthOptions.map(m => (
@@ -347,7 +349,7 @@ export default function ReportsPage() {
             <select
               value={selectedEmployeeId}
               onChange={e => setSelectedEmployeeId(e.target.value)}
-              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500"
+              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
             >
               <option value="ALL">All Employees ({users.length})</option>
               {users.map(u => (
@@ -365,7 +367,7 @@ export default function ReportsPage() {
             <select
               value={selectedSource}
               onChange={e => setSelectedSource(e.target.value)}
-              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500"
+              className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
             >
               <option value="ALL">All Lead Sources</option>
               <option value="JUSTDIAL">JUSTDIAL</option>
@@ -377,7 +379,7 @@ export default function ReportsPage() {
 
         </div>
 
-        {/* Custom Start & End Date Pickers (Shown only when 'CUSTOM' selected) */}
+        {/* Custom Start & End Date Pickers */}
         {dateFilter === 'CUSTOM' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
             <div>
@@ -386,7 +388,7 @@ export default function ReportsPage() {
                 type="date"
                 value={customStartDate}
                 onChange={e => setCustomStartDate(e.target.value)}
-                className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2"
+                className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl p-2"
               />
             </div>
             <div>
@@ -395,57 +397,62 @@ export default function ReportsPage() {
                 type="date"
                 value={customEndDate}
                 onChange={e => setCustomEndDate(e.target.value)}
-                className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2"
+                className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl p-2"
               />
             </div>
           </div>
         )}
       </div>
 
-      {/* FILTERED OVERALL KPI METRICS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Inquiries</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{totalLeads}</p>
-          <p className="text-[11px] text-sky-600 mt-1">{newLeads} new awaiting</p>
+      {/* CREATIO SOLID METRIC CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        {/* Card 1: Solid Royal Blue */}
+        <div className="bg-[#0052cc] text-white p-5 rounded-2xl shadow-md flex flex-col justify-between">
+          <p className="text-xs font-bold text-blue-200 uppercase tracking-wider">Total Inquiries</p>
+          <h3 className="text-3xl font-black mt-2">{totalLeads}</h3>
+          <p className="text-[11px] text-blue-100 mt-3 font-semibold">{newLeads} new awaiting</p>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 shadow-sm">
-          <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider flex items-center">
-            <CalendarCheck className="w-3.5 h-3.5 mr-1" /> Follow-ups
+        {/* Card 2: Solid Warm Orange */}
+        <div className="bg-[#f97316] text-white p-5 rounded-2xl shadow-md flex flex-col justify-between">
+          <p className="text-xs font-bold text-orange-100 uppercase tracking-wider">Follow-ups</p>
+          <h3 className="text-3xl font-black mt-2">{followups}</h3>
+          <p className="text-[11px] text-orange-100 mt-3 font-semibold">
+            {totalLeads > 0 ? ((followups / totalLeads) * 100).toFixed(0) : 0}% of pipeline
           </p>
-          <p className="text-2xl font-black text-purple-800 mt-1">{followups}</p>
-          <p className="text-[11px] text-purple-600 mt-1">{totalLeads > 0 ? ((followups / totalLeads) * 100).toFixed(0) : 0}% of inquiries</p>
         </div>
 
-        <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
-          <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider flex items-center">
-            <PhoneOff className="w-3.5 h-3.5 mr-1" /> Not Reachable
+        {/* Card 3: Solid Amber / Not Reachable */}
+        <div className="bg-[#e11d48] text-white p-5 rounded-2xl shadow-md flex flex-col justify-between">
+          <p className="text-xs font-bold text-rose-100 uppercase tracking-wider">Not Reachable</p>
+          <h3 className="text-3xl font-black mt-2">{notReachable}</h3>
+          <p className="text-[11px] text-rose-100 mt-3 font-semibold">
+            {totalLeads > 0 ? ((notReachable / totalLeads) * 100).toFixed(0) : 0}% retry queue
           </p>
-          <p className="text-2xl font-black text-amber-800 mt-1">{notReachable}</p>
-          <p className="text-[11px] text-amber-600 mt-1">{totalLeads > 0 ? ((notReachable / totalLeads) * 100).toFixed(0) : 0}% retry queue</p>
         </div>
 
-        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
-          <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider flex items-center">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Converted Won
-          </p>
-          <p className="text-2xl font-black text-emerald-800 mt-1">{converted}</p>
-          <p className="text-[11px] text-emerald-600 mt-1 font-bold">{winRate}% Win Rate</p>
+        {/* Card 4: Solid Emerald Green */}
+        <div className="bg-[#16a34a] text-white p-5 rounded-2xl shadow-md flex flex-col justify-between">
+          <p className="text-xs font-bold text-emerald-100 uppercase tracking-wider">Converted Deals</p>
+          <h3 className="text-3xl font-black mt-2">{converted}</h3>
+          <p className="text-[11px] text-emerald-100 mt-3 font-bold">{winRate}% Win Rate</p>
         </div>
 
-        <div className="bg-slate-900 text-white p-4 rounded-xl shadow-sm">
-          <p className="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Total Revenue Won</p>
-          <p className="text-xl font-black text-emerald-400 mt-1">₹{totalRevenue.toLocaleString('en-IN')}</p>
-          <p className="text-[11px] text-slate-400 mt-1">{converted} deals closed</p>
+        {/* Card 5: Solid Deep Violet */}
+        <div className="bg-[#2e0854] text-white p-5 rounded-2xl shadow-md flex flex-col justify-between">
+          <p className="text-xs font-bold text-purple-300 uppercase tracking-wider">Total Revenue</p>
+          <h3 className="text-2xl font-black mt-2 text-emerald-400">₹{totalRevenue.toLocaleString('en-IN')}</h3>
+          <p className="text-[11px] text-purple-300 mt-3 font-semibold">{converted} deals closed</p>
         </div>
+
       </div>
 
       {/* EMPLOYEE NAME SEARCH & PERFORMANCE SUMMARY TABLE */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center">
-            <Users className="w-4 h-4 mr-2 text-sky-600" /> Employee / Caller Performance Summary
+          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center">
+            <Users className="w-4 h-4 mr-2 text-purple-700" /> Employee / Caller Performance Summary
           </h3>
           <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -454,7 +461,7 @@ export default function ReportsPage() {
               placeholder="Search Employee by Name..."
               value={employeeSearchText}
               onChange={e => setEmployeeSearchText(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-semibold"
             />
           </div>
         </div>
@@ -462,7 +469,7 @@ export default function ReportsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider">
+              <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Executive Name</th>
                 <th className="py-3 px-4">Role</th>
                 <th className="py-3 px-4 text-center">Total Assigned</th>
@@ -506,15 +513,15 @@ export default function ReportsPage() {
       </div>
 
       {/* LEAD SOURCE CHANNEL BREAKDOWN */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
-        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center">
-          <Award className="w-4 h-4 mr-2 text-amber-600" /> Channel / Lead Source Breakdown
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center">
+          <Award className="w-4 h-4 mr-2 text-purple-700" /> Channel / Lead Source Breakdown
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider">
+              <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Source Channel</th>
                 <th className="py-3 px-4 text-center">Total Inquiries</th>
                 <th className="py-3 px-4 text-center">Follow-ups</th>
@@ -527,14 +534,14 @@ export default function ReportsPage() {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {sourceMetrics.map(src => (
                 <tr key={src.source} className="hover:bg-slate-50">
-                  <td className="py-3 px-4 font-bold text-sky-700">{src.source}</td>
+                  <td className="py-3 px-4 font-bold text-purple-700">{src.source}</td>
                   <td className="py-3 px-4 text-center font-semibold text-slate-800">{src.totalLeads}</td>
                   <td className="py-3 px-4 text-center font-semibold text-purple-700">{src.followupCount}</td>
                   <td className="py-3 px-4 text-center font-semibold text-amber-700">{src.notReachableCount}</td>
                   <td className="py-3 px-4 text-center font-bold text-emerald-700">{src.convertedCount}</td>
                   <td className="py-3 px-4 text-right font-bold text-emerald-700">₹{src.totalRev.toLocaleString('en-IN')}</td>
                   <td className="py-3 px-4 text-center">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
                       {src.rate}%
                     </span>
                   </td>
@@ -546,15 +553,15 @@ export default function ReportsPage() {
       </div>
 
       {/* FILTERED INQUIRIES REGISTER */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
-        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center">
-          <PhoneCall className="w-4 h-4 mr-2 text-sky-600" /> Filtered Inquiries Register ({filteredLeads.length} Records)
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center">
+          <PhoneCall className="w-4 h-4 mr-2 text-purple-700" /> Filtered Inquiries Register ({filteredLeads.length} Records)
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider">
+              <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3 px-4">Unique ID</th>
                 <th className="py-3 px-4">Client Name</th>
                 <th className="py-3 px-4">Mobile</th>
@@ -575,11 +582,11 @@ export default function ReportsPage() {
               ) : (
                 filteredLeads.map(lead => (
                   <tr key={lead.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-4 font-mono font-bold text-sky-700">{lead.unique_lead_id}</td>
+                    <td className="py-3 px-4 font-mono font-bold text-purple-700">{lead.unique_lead_id}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{lead.customer_name}</td>
                     <td className="py-3 px-4 font-mono">{lead.mobile_number}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
                         {lead.source}
                       </span>
                     </td>

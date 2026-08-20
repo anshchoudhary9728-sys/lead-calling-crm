@@ -17,6 +17,7 @@ import {
   LogOut,
   FileSpreadsheet,
   PhoneOff,
+  Sparkles,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -47,59 +48,113 @@ export default function Sidebar() {
 
   useEffect(() => {
     fetchKpis();
-    // Refresh KPIs every 15 seconds
     const interval = setInterval(fetchKpis, 15000);
     return () => clearInterval(interval);
   }, [pathname]);
 
   const menuItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    {
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      iconBg: 'bg-purple-600',
+    },
     {
       name: 'New Inquiry',
       href: '/planned-calls',
       icon: PhoneCall,
+      iconBg: 'bg-blue-600',
       badge: kpis.overdue_calls > 0 ? `${kpis.overdue_calls} Overdue` : kpis.new_inquiry_count > 0 ? `${kpis.new_inquiry_count}` : null,
-      badgeColor: kpis.overdue_calls > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-sky-500 text-white',
+      badgeColor: kpis.overdue_calls > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-blue-600 text-white',
     },
     {
       name: 'Follow-ups',
       href: '/followups',
       icon: CalendarCheck,
+      iconBg: 'bg-amber-500',
       badge: kpis.followup_count > 0 ? `${kpis.followup_count}` : null,
-      badgeColor: 'bg-purple-600 text-white',
+      badgeColor: 'bg-amber-500 text-slate-950 font-bold',
     },
     {
       name: 'Not Reachable',
       href: '/not-reachable',
       icon: PhoneOff,
+      iconBg: 'bg-rose-500',
       badge: kpis.not_reachable_count > 0 ? `${kpis.not_reachable_count}` : null,
-      badgeColor: 'bg-amber-500 text-white',
+      badgeColor: 'bg-rose-500 text-white',
     },
-    { name: 'Leads Master', href: '/leads', icon: Users },
-    { name: 'My Assigned Leads', href: '/my-leads', icon: UserCheck },
-    { name: 'Call History Logs', href: '/calls', icon: Layers },
-    { name: 'Converted Deals', href: '/converted', icon: CheckCircle2 },
-    { name: 'Analytics & Reports', href: '/reports', icon: BarChart3, adminOnly: true },
-    { name: 'User Management', href: '/users', icon: UserCheck, adminOnly: true },
-    { name: 'Integrations', href: '/integrations', icon: FileSpreadsheet, adminOnly: true },
-    { name: 'Call Engine Settings', href: '/settings', icon: Settings, adminOnly: true },
+    {
+      name: 'Leads Master',
+      href: '/leads',
+      icon: Users,
+      iconBg: 'bg-pink-600',
+    },
+    {
+      name: 'My Assigned Leads',
+      href: '/my-leads',
+      icon: UserCheck,
+      iconBg: 'bg-cyan-600',
+    },
+    {
+      name: 'Call History Logs',
+      href: '/calls',
+      icon: Layers,
+      iconBg: 'bg-indigo-600',
+    },
+    {
+      name: 'Converted Deals',
+      href: '/converted',
+      icon: CheckCircle2,
+      iconBg: 'bg-emerald-600',
+    },
+    {
+      name: 'Analytics & Reports',
+      href: '/reports',
+      icon: BarChart3,
+      iconBg: 'bg-violet-600',
+      adminOnly: true,
+    },
+    {
+      name: 'User Management',
+      href: '/users',
+      icon: UserCheck,
+      iconBg: 'bg-teal-600',
+      adminOnly: true,
+    },
+    {
+      name: 'Integrations',
+      href: '/integrations',
+      icon: FileSpreadsheet,
+      iconBg: 'bg-fuchsia-600',
+      adminOnly: true,
+    },
+    {
+      name: 'Call Engine Settings',
+      href: '/settings',
+      icon: Settings,
+      iconBg: 'bg-slate-600',
+      adminOnly: true,
+    },
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen sticky top-0 z-40 select-none border-r border-slate-800">
+    <aside className="w-64 bg-gradient-to-b from-[#1e0a38] via-[#280c4a] to-[#140426] text-slate-200 flex flex-col h-screen sticky top-0 z-40 select-none border-r border-purple-900/40 shadow-2xl">
       {/* Brand Logo Header */}
-      <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
-        <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white font-black text-lg mr-3 shadow-md">
+      <div className="h-16 flex items-center px-5 border-b border-purple-900/40 bg-[#16052c]">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-500 to-pink-500 flex items-center justify-center text-white font-black text-lg mr-3 shadow-lg shadow-purple-900/50">
           F
         </div>
-        <div>
-          <h1 className="font-bold text-white tracking-wide text-base leading-tight">FabricTraders</h1>
-          <p className="text-[10px] text-sky-400 font-semibold tracking-wider uppercase">Sales &amp; Calling CRM</p>
+        <div className="flex-1">
+          <div className="flex items-center space-x-1.5">
+            <h1 className="font-extrabold text-white tracking-tight text-base leading-tight">FabricTraders</h1>
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+          </div>
+          <p className="text-[10px] text-purple-300 font-bold tracking-wider uppercase">CRM Enterprise</p>
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         {menuItems.map(item => {
           if (item.adminOnly && isExecutive) return null;
 
@@ -110,19 +165,21 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition ${
+              className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition group ${
                 isActive
-                  ? 'bg-sky-600 text-white font-semibold shadow-sm'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                  ? 'bg-purple-600/40 text-white border border-purple-400/40 shadow-inner'
+                  : 'text-purple-200/80 hover:bg-white/10 hover:text-white'
               }`}
             >
               <div className="flex items-center space-x-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{item.name}</span>
+                <div className={`w-7 h-7 rounded-lg ${item.iconBg} flex items-center justify-center text-white shadow-md group-hover:scale-105 transition transform`}>
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+                <span className="tracking-wide">{item.name}</span>
               </div>
 
               {item.badge && (
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${item.badgeColor || 'bg-slate-700 text-slate-200'}`}>
+                <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full shadow-sm ${item.badgeColor || 'bg-purple-900 text-purple-200'}`}>
                   {item.badge}
                 </span>
               )}
@@ -132,16 +189,16 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer Profile & Logout */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950">
-        <div className="flex items-center justify-between">
+      <div className="p-3.5 border-t border-purple-900/40 bg-[#120324]">
+        <div className="flex items-center justify-between bg-purple-950/60 p-2 rounded-xl border border-purple-900/50">
           <div className="truncate pr-2">
-            <p className="text-xs font-semibold text-white truncate">{currentUser?.full_name}</p>
-            <p className="text-[10px] text-slate-400 truncate">{currentUser?.email}</p>
+            <p className="text-xs font-bold text-white truncate">{currentUser?.full_name || 'User'}</p>
+            <p className="text-[10px] text-purple-300 font-medium truncate">{currentUser?.email}</p>
           </div>
           <button
             onClick={logout}
             title="Logout"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-purple-300 hover:text-rose-400 hover:bg-white/10 transition"
           >
             <LogOut className="w-4 h-4" />
           </button>
