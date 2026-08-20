@@ -17,6 +17,7 @@ import {
   History,
   CheckCircle2,
   Calendar,
+  CalendarCheck,
   DollarSign,
   Send,
   MessageSquare,
@@ -30,7 +31,7 @@ interface CallDrawerProps {
 
 export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps) {
   const { currentUser } = useAuth();
-  const [selectedStatus, setSelectedStatus] = useState<LeadStatus>('CONNECTED' as LeadStatus);
+  const [selectedStatus, setSelectedStatus] = useState<LeadStatus>('FOLLOW_UP' as LeadStatus);
   const [remarks, setRemarks] = useState('');
   const [followupDate, setFollowupDate] = useState('');
   const [followupTime, setFollowupTime] = useState('11:00');
@@ -46,8 +47,9 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
   const lastCall = previousCalls[0];
   const delayInfo = calculateTimeDelay(lead.current_planned_call_at);
 
-  const isFollowupRequired = ['FOLLOW_UP', 'CALL_BACK', 'INTERESTED'].includes(selectedStatus);
+  const isFollowupRequired = selectedStatus === 'FOLLOW_UP';
   const isConverted = selectedStatus === 'CONVERTED';
+
 
   const handleSaveCall = (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,24 +279,37 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
 
             {/* Select Call Status Disposition */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Call Outcome / Disposition <span className="text-rose-500">*</span>
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                Call Outcome <span className="text-rose-500">*</span>
               </label>
-              <select
-                value={selectedStatus}
-                onChange={e => setSelectedStatus(e.target.value as LeadStatus)}
-                className="w-full text-xs font-semibold bg-white border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              >
-                <option value="FOLLOW_UP">Follow-up (Pick Date & Time)</option>
-                <option value="INTERESTED">Interested (Pick Date & Time)</option>
-                <option value="CALL_BACK">Call Back (Pick Date & Time)</option>
-                <option value="NOT_REACHABLE">Not Reachable (Auto-reschedules +4 Hours)</option>
-                <option value="BUSY">Busy (Auto-reschedules +30 Minutes)</option>
-                <option value="CONVERTED">Converted (Deal Won)</option>
-                <option value="NOT_INTERESTED">Not Interested (Close)</option>
-                <option value="WRONG_NUMBER">Wrong Number (Close)</option>
-                <option value="LOST">Lost Deal (Close)</option>
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('FOLLOW_UP')}
+                  className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                    selectedStatus === 'FOLLOW_UP'
+                      ? 'border-sky-500 bg-sky-50 text-sky-700'
+                      : 'border-slate-200 bg-white text-slate-500 hover:border-sky-300'
+                  }`}
+                >
+                  <CalendarCheck className="w-5 h-5" />
+                  Follow-up
+                  <span className="text-[10px] font-normal opacity-70">Set Date &amp; Time</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus('NOT_REACHABLE')}
+                  className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                    selectedStatus === 'NOT_REACHABLE'
+                      ? 'border-amber-500 bg-amber-50 text-amber-700'
+                      : 'border-slate-200 bg-white text-slate-500 hover:border-amber-300'
+                  }`}
+                >
+                  <PhoneCall className="w-5 h-5" />
+                  Not Reachable
+                  <span className="text-[10px] font-normal opacity-70">Auto +4 Hr Retry</span>
+                </button>
+              </div>
             </div>
 
             {/* Conditional Follow-up Date/Time Picker */}
