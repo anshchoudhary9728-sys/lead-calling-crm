@@ -40,58 +40,68 @@ export default function PlannedCallsDashboard() {
     planned_filter: 'all',
   });
 
-  const kpis = crmStore.getDashboardKPIs();
+  const [kpis, setKpis] = useState({
+    todays_new_leads: 0, calls_planned_today: 0, calls_completed_today: 0,
+    overdue_calls: 0, not_reachable_count: 0, total_converted: 0,
+  });
   const users = crmStore.getUsers();
 
   const loadLeads = async () => {
-    // If Sales Executive, show assigned planned calls queue by default
-    const assignedId = currentUser?.role === 'SALES_EXECUTIVE' ? currentUser.id : filters.assigned_user_id;
-    let queue = crmStore.getPlannedCallsQueue(assignedId);
-
     try {
       const res = await fetch('/api/v1/leads');
       const data = await res.json();
-      if (data.success && data.leads && data.leads.length > 0) {
-        // Merge server synced leads into store
-        data.leads.forEach((serverLead: Lead) => {
-          if (!crmStore.getLeadById(serverLead.id)) {
-            crmStore.createLead(serverLead);
-          }
-        });
-        queue = crmStore.getPlannedCallsQueue(assignedId);
-      }
-    } catch (err) {
-      // Fallback to local store queue
-    }
 
-    // Apply secondary filters
-    let filtered = queue;
+      // Use ONLY Supabase data — never demo/seed data
+      let queue: Lead[] = (data.leads || []) as Lead[];
 
-    if (filters.search) {
-      const q = filters.search.toLowerCase().trim();
-      filtered = filtered.filter(
-        l =>
-          l.unique_lead_id.toLowerCase().includes(q) ||
-          l.customer_name.toLowerCase().includes(q) ||
-          l.mobile_number.includes(q) ||
-          (l.company_name && l.company_name.toLowerCase().includes(q))
-      );
-    }
-
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(l => l.current_status === filters.status);
-    }
-
-    if (filters.source !== 'all') {
-      filtered = filtered.filter(l => l.source === filters.source);
-    }
-
-    if (filters.planned_filter === 'overdue') {
+      // Sort: overdue first, then by planned time ascending
       const now = new Date();
-      filtered = filtered.filter(l => l.current_planned_call_at && new Date(l.current_planned_call_at) < now);
-    }
+      queue = queue
+        .filter(l => l.current_status !== 'CONVERTED' && l.current_status !== 'LOST' && l.current_status !== 'NOT_INTERESTED')
+        .sort((a, b) => {
+          const aTime = a.current_planned_call_at ? new Date(a.current_planned_call_at).getTime() : Infinity;
+          const bTime = b.current_planned_call_at ? new Date(b.current_planned_call_at).getTime() : Infinity;
+          return aTime - bTime;
+        });
 
-    setLeads(filtered);
+      // Compute KPIs from real Supabase leads
+      const todayStr = now.toISOString().substring(0, 10);
+      const allLeads: Lead[] = (data.leads || []) as Lead[];
+      setKpis({
+        todays_new_leads: allLeads.filter(l => l.lead_received_at && l.lead_received_at.substring(0, 10) === todayStr).length,
+        calls_planned_today: allLeads.filter(l => l.current_planned_call_at && l.current_planned_call_at.substring(0, 10) === todayStr).length,
+        calls_completed_today: 0,
+        overdue_calls: allLeads.filter(l => l.current_planned_call_at && new Date(l.current_planned_call_at) < now && l.current_status !== 'CONVERTED' && l.current_status !== 'LOST').length,
+        not_reachable_count: allLeads.filter(l => l.current_status === 'NOT_REACHABLE').length,
+        total_converted: allLeads.filter(l => l.current_status === 'CONVERTED').length,
+      });
+
+      // Apply search/status/source filters
+      let filtered = queue;
+      if (filters.search) {
+        const q = filters.search.toLowerCase().trim();
+        filtered = filtered.filter(
+          l =>
+            l.unique_lead_id.toLowerCase().includes(q) ||
+            l.customer_name.toLowerCase().includes(q) ||
+            l.mobile_number.includes(q) ||
+            (l.company_name && l.company_name.toLowerCase().includes(q))
+        );
+      }
+      if (filters.status !== 'all') {
+        filtered = filtered.filter(l => l.current_status === filters.status);
+      }
+      if (filters.source !== 'all') {
+        filtered = filtered.filter(l => l.source === filters.source);
+      }
+      if (filters.planned_filter === 'overdue') {
+        filtered = filtered.filter(l => l.current_planned_call_at && new Date(l.current_planned_call_at) < now);
+      }
+
+      setLeads(filtered);
+    } catch (err) {
+      setLeads([]);
+    }
   };
 
   useEffect(() => {
