@@ -43,10 +43,26 @@ export default function PlannedCallsDashboard() {
   const kpis = crmStore.getDashboardKPIs();
   const users = crmStore.getUsers();
 
-  const loadLeads = () => {
+  const loadLeads = async () => {
     // If Sales Executive, show assigned planned calls queue by default
     const assignedId = currentUser?.role === 'SALES_EXECUTIVE' ? currentUser.id : filters.assigned_user_id;
-    const queue = crmStore.getPlannedCallsQueue(assignedId);
+    let queue = crmStore.getPlannedCallsQueue(assignedId);
+
+    try {
+      const res = await fetch('/api/v1/leads');
+      const data = await res.json();
+      if (data.success && data.leads && data.leads.length > 0) {
+        // Merge server synced leads into store
+        data.leads.forEach((serverLead: Lead) => {
+          if (!crmStore.getLeadById(serverLead.id)) {
+            crmStore.createLead(serverLead);
+          }
+        });
+        queue = crmStore.getPlannedCallsQueue(assignedId);
+      }
+    } catch (err) {
+      // Fallback to local store queue
+    }
 
     // Apply secondary filters
     let filtered = queue;
