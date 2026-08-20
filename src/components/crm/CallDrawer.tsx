@@ -68,6 +68,13 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
     }
 
     try {
+      // Ensure lead exists in crm-store (Supabase leads need to be injected first)
+      const existingInStore = crmStore.getLeadById(lead.id);
+      if (!existingInStore) {
+        // Inject Supabase lead into in-memory store so logCall can find it
+        (crmStore as any).leads.unshift({ ...lead });
+      }
+
       crmStore.logCall({
         lead_id: lead.id,
         user_id: currentUser?.id || 'user-exec-1',
