@@ -43,6 +43,34 @@ export async function POST(req: NextRequest) {
       enquiry_message,
     });
 
+    // If Supabase database is connected, insert directly into Supabase PostgreSQL `leads` table
+    const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+    if (isSupabaseConfigured && supabase && result.success) {
+      try {
+        const rawPhone = String(mobile_number || '');
+        const cleanPhone = rawPhone.replace(/\D/g, '');
+        const normalizedPhone = cleanPhone.length === 10 ? `+91 ${cleanPhone}` : `+91 ${cleanPhone.slice(-10)}`;
+        const plannedTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        await supabase.from('leads').insert([{
+          unique_lead_id: result.unique_lead_id,
+          source: (source as LeadSource) || 'JUSTDIAL',
+          customer_name,
+          company_name: company_name || null,
+          mobile_number: normalizedPhone,
+          email: email || null,
+          city: city || null,
+          state: state || null,
+          client_requirement: client_requirement || enquiry_message || null,
+          current_status: 'NEW',
+          current_planned_call_at: plannedTime,
+          lead_received_at: new Date().toISOString(),
+        }]);
+      } catch (dbErr) {
+        console.error('Supabase PostgreSQL insert warning:', dbErr);
+      }
+    }
+
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.message }, { status: 500 });
     }
