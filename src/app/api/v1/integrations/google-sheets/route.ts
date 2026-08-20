@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         const normalizedPhone = cleanPhone.length === 10 ? `+91 ${cleanPhone}` : `+91 ${cleanPhone.slice(-10)}`;
         const plannedTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-        await supabase.from('leads').insert([{
+        const { data: dbData, error: dbError } = await supabase.from('leads').insert([{
           unique_lead_id: result.unique_lead_id,
           source: (source as LeadSource) || 'JUSTDIAL',
           customer_name,
@@ -65,7 +65,11 @@ export async function POST(req: NextRequest) {
           current_status: 'NEW',
           current_planned_call_at: plannedTime,
           lead_received_at: new Date().toISOString(),
-        }]);
+        }]).select();
+
+        if (dbError) {
+          console.error('Supabase DB Insert Error:', dbError);
+        }
       } catch (dbErr) {
         console.error('Supabase PostgreSQL insert warning:', dbErr);
       }
