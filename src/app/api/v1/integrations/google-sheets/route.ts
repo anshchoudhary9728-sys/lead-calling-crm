@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crmStore } from '@/lib/crm-store';
-import { LeadSource } from '@/types/crm';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,7 +6,6 @@ export async function POST(req: NextRequest) {
 
     const {
       source = 'JUSTDIAL',
-      source_lead_id,
       customer_name,
       mobile_number,
       company_name,
@@ -16,7 +13,6 @@ export async function POST(req: NextRequest) {
       city,
       state,
       client_requirement,
-      product,
       enquiry_message,
     } = body;
 
@@ -28,68 +24,99 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call store sync function
-    const result = crmStore.syncGoogleSheetLead({
-      source: (source as LeadSource) || 'JUSTDIAL',
-      source_lead_id,
-      customer_name,
-      mobile_number,
-      company_name,
-      email,
-      city,
-      state,
-      client_requirement: client_requirement || enquiry_message,
-      product,
-      enquiry_message,
+    // Normalize phone number
+    const rawPhone = String(mobile_number || '');
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+    const normalizedPhone = cleanPhone.length >= 10
+      ? `+91 ${cleanPhone.slice(-10)}`
+      : `+91 ${cleanPhone}`;
+
+    // Import Supabase
+    const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
+
+    if (!isSupabaseConfigured || !supabase) {
+      return NextResponse.json(
+        { success: false, error: 'Database not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    // Check for duplicate phone number in Supabase
+    const { data: existing } = await supabase
+      .from('leads')
+      .select('id, unique_lead_id')
+      .ilike('mobile_number', `%${cleanPhone.slice(-10)}%`)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        message: `Duplicate lead - already exists as ${existing.unique_lead_id}`,
+        unique_lead_id: existing.unique_lead_id,
+        duplicate: true,
+      });
+    }
+
+    // Generate unique lead ID using timestamp + random (no DB count needed)
+    const today = new Date();
+    const dateStr = today.toISOString().substring(0, 10).replace(/-/g, '');
+    const randomPart = Math.floor(10000 + Math.random() * 89999); // 5-digit random
+    const unique_lead_id = `LD-${dateStr}-${randomPart}`;
+
+    // Compute planned call time (+10 minutes from now)
+    const plannedTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    // Direct INSERT into Supabase leads table
+    const { data: inserted, error: dbError } = await supabase
+      .from('leads')
+      .insert([{
+        unique_lead_id,
+        source: source,
+        customer_name: String(customer_name),
+        company_name: company_name ? String(company_name) : null,
+        mobile_number: normalizedPhone,
+        email: email ? String(email) : null,
+        city: city ? String(city) : null,
+        state: state ? String(state) : null,
+        client_requirement: client_requirement
+          ? String(client_requirement)
+          : enquiry_message
+          ? String(enquiry_message)
+          : null,
+        enquiry_message: enquiry_message ? String(enquiry_message) : null,
+        current_status: 'NEW',
+        current_planned_call_at: plannedTime,
+        lead_received_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Supabase INSERT Error:', JSON.stringify(dbError));
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Database insert failed: ${dbError.message}`,
+          details: dbError,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Lead synced successfully! Assigned Unique ID: ${unique_lead_id}. Planned call in 10 minutes.`,
+      unique_lead_id,
+      lead_id: inserted?.id,
+      planned_call_at: plannedTime,
+      synced_at: new Date().toISOString(),
     });
 
-    // If Supabase database is connected, insert directly into Supabase PostgreSQL `leads` table
-    const { supabase, isSupabaseConfigured } = await import('@/lib/supabase');
-    if (isSupabaseConfigured && supabase && result.success) {
-      try {
-        const rawPhone = String(mobile_number || '');
-        const cleanPhone = rawPhone.replace(/\D/g, '');
-        const normalizedPhone = cleanPhone.length === 10 ? `+91 ${cleanPhone}` : `+91 ${cleanPhone.slice(-10)}`;
-        const plannedTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-        const { data: dbData, error: dbError } = await supabase.from('leads').insert([{
-          unique_lead_id: result.unique_lead_id,
-          source: (source as LeadSource) || 'JUSTDIAL',
-          customer_name,
-          company_name: company_name || null,
-          mobile_number: normalizedPhone,
-          email: email || null,
-          city: city || null,
-          state: state || null,
-          client_requirement: client_requirement || enquiry_message || null,
-          current_status: 'NEW',
-          current_planned_call_at: plannedTime,
-          lead_received_at: new Date().toISOString(),
-        }]).select();
-
-        if (dbError) {
-          console.error('Supabase DB Insert Error:', dbError);
-        }
-      } catch (dbErr) {
-        console.error('Supabase PostgreSQL insert warning:', dbErr);
-      }
-    }
-
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.message }, { status: 500 });
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: result.message,
-        supabase_lead_id: result.lead_id,
-        unique_lead_id: result.unique_lead_id,
-        synced_at: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message || 'Internal Server Error' }, { status: 500 });
+    console.error('Webhook Exception:', err);
+    return NextResponse.json(
+      { success: false, error: err.message || 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
