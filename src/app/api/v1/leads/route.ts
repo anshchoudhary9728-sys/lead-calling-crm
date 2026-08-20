@@ -1,23 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
-    // Fetch ONLY from Supabase — no demo/seed data fallback
     if (isSupabaseConfigured && supabase) {
       const { data: dbLeads, error } = await supabase
         .from('leads')
         .select('*')
-        .order('current_planned_call_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true, leads: dbLeads || [], source: 'supabase' }, { status: 200 });
+      return NextResponse.json({
+        success: true,
+        leads: dbLeads || [],
+        source: 'supabase',
+      }, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      });
     }
 
-    // Supabase not configured — return empty, not demo data
     return NextResponse.json({
       success: false,
       leads: [],

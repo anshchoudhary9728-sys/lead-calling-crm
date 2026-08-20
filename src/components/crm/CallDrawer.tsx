@@ -1,18 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Lead, LeadStatus, CallLog } from '@/types/crm';
+import { Lead, LeadStatus } from '@/types/crm';
 import { crmStore } from '@/lib/crm-store';
 import { useAuth } from '@/context/AuthContext';
-import { formatIST, calculateTimeDelay, formatISTTime, formatISTDate } from '@/lib/timezone';
+import { formatIST, calculateTimeDelay } from '@/lib/timezone';
 import {
   X,
   PhoneCall,
   Clock,
-  User,
-  Building,
-  MapPin,
-  FileText,
   AlertCircle,
   History,
   CheckCircle2,
@@ -21,6 +17,7 @@ import {
   DollarSign,
   Send,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 
 interface CallDrawerProps {
@@ -37,7 +34,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
   const [followupTime, setFollowupTime] = useState('11:00');
   const [dealAmount, setDealAmount] = useState('50000');
   const [callDuration, setCallDuration] = useState('60');
-  const [isCallingActive, setIsCallingActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showAllRemarks, setShowAllRemarks] = useState(true);
 
@@ -49,7 +46,6 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
 
   const isFollowupRequired = selectedStatus === 'FOLLOW_UP';
   const isConverted = selectedStatus === 'CONVERTED';
-
 
   const handleSaveCall = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,45 +65,63 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
       followupISO = new Date(`${followupDate}T${followupTime}:00`).toISOString();
     }
 
+    setIsSubmitting(true);
+
     try {
-      // Ensure lead exists in crm-store (Supabase leads need to be injected first)
-      const existingInStore = crmStore.getLeadById(lead.id);
-      if (!existingInStore) {
-        (crmStore as any).leads.unshift({ ...lead });
-      }
-
-      crmStore.logCall({
-        lead_id: lead.id,
-        user_id: currentUser?.id || 'user-exec-1',
-        call_status: selectedStatus,
-        remarks: remarks.trim(),
-        selected_followup_at: followupISO,
-        call_duration_seconds: parseInt(callDuration) || 45,
-        deal_amount: isConverted ? parseFloat(dealAmount) || 0 : undefined,
-      });
-
-      // Update lead status in Supabase so it moves to correct section
+      // Calculate next planned call time based on status
       let nextPlannedAt: string | null = null;
       if (selectedStatus === 'FOLLOW_UP' && followupISO) {
         nextPlannedAt = followupISO;
       } else if (selectedStatus === 'NOT_REACHABLE') {
         nextPlannedAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(); // +4 hours
+      } else if (selectedStatus === 'CONVERTED') {
+        nextPlannedAt = null;
       }
 
-      await fetch(`/api/v1/leads/${lead.id}`, {
+      // Update lead in Supabase database
+      const updateTargetId = lead.id || lead.unique_lead_id;
+      const res = await fetch(`/api/v1/leads/${updateTargetId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           current_status: selectedStatus,
           current_planned_call_at: nextPlannedAt,
           next_followup_at: selectedStatus === 'FOLLOW_UP' ? followupISO : null,
+          deal_amount: isConverted ? parseFloat(dealAmount) || 0 : null,
+          remarks: remarks.trim(),
         }),
       });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update lead status in database.');
+      }
+
+      // Also log locally in store if available
+      try {
+        const existingInStore = crmStore.getLeadById(lead.id);
+        if (!existingInStore) {
+          (crmStore as any).leads.unshift({ ...lead, current_status: selectedStatus });
+        }
+        crmStore.logCall({
+          lead_id: lead.id,
+          user_id: currentUser?.id || 'user-exec-1',
+          call_status: selectedStatus,
+          remarks: remarks.trim(),
+          selected_followup_at: followupISO,
+          call_duration_seconds: parseInt(callDuration) || 45,
+          deal_amount: isConverted ? parseFloat(dealAmount) || 0 : undefined,
+        });
+      } catch (localErr) {
+        // Non-critical local store error
+      }
 
       onSuccess();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to save call record.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -134,68 +148,27 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
           </button>
         </div>
 
-        {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Drawer Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           
-          {/* Top Info Cards Grid */}
-          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-            <div className="space-y-1.5">
-              <p className="text-slate-500 font-medium flex items-center">
-                <User className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                Contact: <strong className="text-slate-800 ml-1">{lead.mobile_number}</strong>
-              </p>
-              {lead.company_name && (
-                <p className="text-slate-500 font-medium flex items-center">
-                  <Building className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                  Company: <span className="text-slate-700 ml-1">{lead.company_name}</span>
-                </p>
-              )}
-              {lead.city && (
-                <p className="text-slate-500 font-medium flex items-center">
-                  <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                  Location: <span className="text-slate-700 ml-1">{lead.city}, {lead.state || ''}</span>
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5 border-l border-slate-200 pl-4">
-              <p className="text-slate-500 font-medium flex items-center">
-                <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                Planned Call: <span className="font-bold text-slate-900 ml-1">{formatIST(lead.current_planned_call_at)}</span>
-              </p>
-              <p className="text-slate-500 font-medium flex items-center">
-                Delay Status: 
-                <span className={`ml-1 font-bold px-2 py-0.5 rounded text-[10px] ${
-                  delayInfo.isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                }`}>
-                  {delayInfo.text}
-                </span>
-              </p>
-              <p className="text-slate-500 font-medium">
-                Total Attempts: <strong className="text-slate-800">{lead.total_call_attempts}</strong>
-              </p>
-            </div>
-
-            {/* Requirement Full Text */}
-            <div className="col-span-2 bg-white p-3 rounded-lg border border-slate-200 mt-1">
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center">
-                <FileText className="w-3 h-3 mr-1 text-sky-600" /> Client Requirement:
-              </p>
-              <p className="text-slate-800 font-medium text-xs leading-relaxed">
-                {lead.client_requirement || lead.enquiry_message || 'No explicit requirement specified.'}
-              </p>
-            </div>
+          {/* CLIENT REQUIREMENT BOX */}
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 space-y-1.5">
+            <h3 className="text-xs font-bold text-sky-900 uppercase tracking-wider flex items-center">
+              Client Requirement:
+            </h3>
+            <p className="text-xs text-slate-800 font-medium leading-relaxed">
+              {lead.client_requirement || lead.enquiry_message || 'No specific requirement provided.'}
+            </p>
           </div>
 
-          {/* Action Call Trigger Bar */}
-          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 flex items-center justify-between">
+          {/* CALL NOW BUTTON */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
             <div>
-              <p className="text-xs font-bold text-sky-900">Make Customer Phone Call</p>
-              <p className="text-[11px] text-sky-700">Clicking Call triggers phone dialer and starts call logging timer.</p>
+              <p className="text-xs font-bold text-slate-800">Make Customer Phone Call</p>
+              <p className="text-[11px] text-slate-500">Clicking Call triggers phone dialer and starts call timer.</p>
             </div>
             <a
-              href={`tel:${lead.mobile_number.replace(/\s+/g, '')}`}
-              onClick={() => setIsCallingActive(true)}
+              href={`tel:${lead.mobile_number}`}
               className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
             >
               <PhoneCall className="w-4 h-4 mr-2 animate-bounce" />
@@ -203,7 +176,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
             </a>
           </div>
 
-          {/* REQUIREMENT 32: PROMINENT LAST CONVERSATION BOX */}
+          {/* LAST CONVERSATION BOX */}
           <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between border-b border-amber-200 pb-2">
               <div className="flex items-center space-x-2">
@@ -241,7 +214,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
             )}
           </div>
 
-          {/* REQUIREMENT 33: ALL PREVIOUS REMARKS TIMELINE */}
+          {/* PREVIOUS REMARKS TIMELINE */}
           {previousCalls.length > 1 && (
             <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
               <div
@@ -261,7 +234,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
 
               {showAllRemarks && (
                 <div className="space-y-3 pt-2 border-t border-slate-100 max-h-48 overflow-y-auto">
-                  {previousCalls.map((call, idx) => (
+                  {previousCalls.map((call) => (
                     <div key={call.id} className="text-xs bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1">
                       <div className="flex justify-between font-semibold text-slate-700">
                         <span>Attempt #{call.attempt_number} — {call.user_name}</span>
@@ -281,7 +254,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
             </div>
           )}
 
-          {/* REQUIREMENT 30: CALL DISPOSITION FORM */}
+          {/* CALL DISPOSITION FORM */}
           <form onSubmit={handleSaveCall} className="bg-slate-50 border border-slate-300 p-5 rounded-xl space-y-4">
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-1.5 text-sky-600" /> Log Call Disposition & Reschedule
@@ -294,7 +267,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
               </div>
             )}
 
-            {/* Select Call Status Disposition */}
+            {/* 3 Outcome Buttons */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">
                 Call Outcome <span className="text-rose-500">*</span>
@@ -305,7 +278,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                   onClick={() => setSelectedStatus('FOLLOW_UP')}
                   className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
                     selectedStatus === 'FOLLOW_UP'
-                      ? 'border-sky-500 bg-sky-50 text-sky-700'
+                      ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-sky-300'
                   }`}
                 >
@@ -318,7 +291,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                   onClick={() => setSelectedStatus('NOT_REACHABLE')}
                   className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
                     selectedStatus === 'NOT_REACHABLE'
-                      ? 'border-amber-500 bg-amber-50 text-amber-700'
+                      ? 'border-amber-500 bg-amber-50 text-amber-700 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-amber-300'
                   }`}
                 >
@@ -331,7 +304,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                   onClick={() => setSelectedStatus('CONVERTED')}
                   className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
                     selectedStatus === 'CONVERTED'
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-300'
                   }`}
                 >
@@ -341,7 +314,6 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                 </button>
               </div>
             </div>
-
 
             {/* Conditional Follow-up Date/Time Picker */}
             {isFollowupRequired && (
@@ -406,16 +378,27 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isSubmitting}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-6 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
+                disabled={isSubmitting}
+                className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-6 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95 disabled:opacity-50"
               >
-                <Send className="w-4 h-4 mr-2" />
-                SAVE CALL & AUTO-RESCHEDULE
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    SAVING...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    SAVE CALL &amp; UPDATE STATUS
+                  </>
+                )}
               </button>
             </div>
           </form>

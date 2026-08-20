@@ -1,27 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Header from '@/components/layout/Header';
 import CallDrawer from '@/components/crm/CallDrawer';
-import { Lead, LeadFilterState, LeadStatus, LeadSource } from '@/types/crm';
+import { Lead, LeadFilterState } from '@/types/crm';
 import { crmStore } from '@/lib/crm-store';
 import { formatIST, calculateTimeDelay } from '@/lib/timezone';
 import { useAuth } from '@/context/AuthContext';
 import {
   PhoneCall,
-  Search,
-  Filter,
   RefreshCw,
   AlertTriangle,
-  Clock,
-  CheckCircle2,
-  Calendar,
-  User,
-  Building,
-  MapPin,
-  MessageSquare,
-  FileSpreadsheet,
-  Plus,
 } from 'lucide-react';
 
 export default function PlannedCallsDashboard() {
@@ -41,20 +29,27 @@ export default function PlannedCallsDashboard() {
   });
 
   const [kpis, setKpis] = useState({
-    todays_new_leads: 0, calls_planned_today: 0, calls_completed_today: 0,
-    overdue_calls: 0, not_reachable_count: 0, total_converted: 0,
+    todays_new_leads: 0,
+    calls_planned_today: 0,
+    calls_completed_today: 0,
+    overdue_calls: 0,
+    not_reachable_count: 0,
+    total_converted: 0,
   });
   const users = crmStore.getUsers();
 
   const loadLeads = async () => {
     try {
-      const res = await fetch('/api/v1/leads');
+      const res = await fetch(`/api/v1/leads?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const data = await res.json();
-
-      // NEW INQUIRY = Only NEW status leads (FOLLOW_UP and NOT_REACHABLE have their own pages)
-      let queue: Lead[] = (data.leads || []) as Lead[];
+      const allLeads: Lead[] = (data.leads || []) as Lead[];
       const now = new Date();
-      queue = queue
+
+      // NEW INQUIRY = Show ONLY NEW status leads
+      let queue: Lead[] = allLeads
         .filter(l => l.current_status === 'NEW')
         .sort((a, b) => {
           const aTime = a.current_planned_call_at ? new Date(a.current_planned_call_at).getTime() : Infinity;
@@ -62,32 +57,33 @@ export default function PlannedCallsDashboard() {
           return aTime - bTime;
         });
 
-      // Compute KPIs from real Supabase leads
+      // Compute KPIs accurately
       const todayStr = now.toISOString().substring(0, 10);
-      const allLeads: Lead[] = (data.leads || []) as Lead[];
+      const newLeads = allLeads.filter(l => l.current_status === 'NEW');
+      const overdueNewLeads = newLeads.filter(
+        l => l.current_planned_call_at && new Date(l.current_planned_call_at) < now
+      );
+
       setKpis({
         todays_new_leads: allLeads.filter(l => l.lead_received_at && l.lead_received_at.substring(0, 10) === todayStr).length,
-        calls_planned_today: allLeads.filter(l => l.current_planned_call_at && l.current_planned_call_at.substring(0, 10) === todayStr).length,
-        calls_completed_today: 0,
-        overdue_calls: allLeads.filter(l => l.current_planned_call_at && new Date(l.current_planned_call_at) < now && l.current_status !== 'CONVERTED' && l.current_status !== 'LOST').length,
+        calls_planned_today: newLeads.length,
+        calls_completed_today: allLeads.filter(l => l.current_status !== 'NEW').length,
+        overdue_calls: overdueNewLeads.length,
         not_reachable_count: allLeads.filter(l => l.current_status === 'NOT_REACHABLE').length,
         total_converted: allLeads.filter(l => l.current_status === 'CONVERTED').length,
       });
 
-      // Apply search/status/source filters
+      // Apply search/source filters
       let filtered = queue;
       if (filters.search) {
         const q = filters.search.toLowerCase().trim();
         filtered = filtered.filter(
           l =>
-            l.unique_lead_id.toLowerCase().includes(q) ||
-            l.customer_name.toLowerCase().includes(q) ||
-            l.mobile_number.includes(q) ||
+            l.unique_lead_id?.toLowerCase().includes(q) ||
+            l.customer_name?.toLowerCase().includes(q) ||
+            l.mobile_number?.includes(q) ||
             (l.company_name && l.company_name.toLowerCase().includes(q))
         );
-      }
-      if (filters.status !== 'all') {
-        filtered = filtered.filter(l => l.current_status === filters.status);
       }
       if (filters.source !== 'all') {
         filtered = filtered.filter(l => l.source === filters.source);
@@ -105,10 +101,10 @@ export default function PlannedCallsDashboard() {
   useEffect(() => {
     loadLeads();
 
-    // Auto refresh time delay calculation every 30 seconds
+    // Auto refresh every 20 seconds
     const interval = setInterval(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 30000);
+      loadLeads();
+    }, 20000);
 
     return () => clearInterval(interval);
   }, [filters, currentUser, refreshKey]);
@@ -127,15 +123,18 @@ export default function PlannedCallsDashboard() {
             <div>
               <h1 className="text-xl font-extrabold text-slate-900 flex items-center">
                 <PhoneCall className="w-6 h-6 mr-2.5 text-sky-600" />
-                PLANNED CALLS PRIORITY QUEUE
+                NEW INQUIRY CALL QUEUE
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Automatically prioritized by planned call time & delay. Most urgent overdue calls are at top.
+                Fresh incoming leads awaiting first call. Automatically prioritized by time received.
               </p>
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => setRefreshKey(prev => prev + 1)}
+                onClick={() => {
+                  setRefreshKey(prev => prev + 1);
+                  loadLeads();
+                }}
                 className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center shadow-sm transition"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh Queue
@@ -151,8 +150,8 @@ export default function PlannedCallsDashboard() {
             </div>
 
             <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Planned Today</p>
-              <p className="text-xl font-black text-sky-600 mt-1">{kpis.calls_planned_today}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Inquiry</p>
+              <p className="text-xl font-black text-sky-600 mt-1">{leads.length}</p>
             </div>
 
             <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
@@ -178,190 +177,115 @@ export default function PlannedCallsDashboard() {
             </div>
           </div>
 
-          {/* SEARCH & STICKY MULTI-FILTER BAR */}
+          {/* FILTERS TOOLBAR */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              
-              {/* Search input */}
-              <div className="relative lg:col-span-2">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
                 <input
                   type="text"
                   placeholder="Search Unique ID, Client Name, Mobile..."
                   value={filters.search}
                   onChange={e => setFilters({ ...filters, search: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white"
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none"
                 />
               </div>
 
-              {/* Status Filter */}
-              <div>
-                <select
-                  value={filters.status}
-                  onChange={e => setFilters({ ...filters, status: e.target.value })}
-                  className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="NEW">NEW</option>
-                  <option value="FOLLOW_UP">FOLLOW UP</option>
-                  <option value="INTERESTED">INTERESTED</option>
-                  <option value="NOT_REACHABLE">NOT REACHABLE</option>
-                  <option value="BUSY">BUSY</option>
-                </select>
-              </div>
-
-              {/* Source Filter */}
               <div>
                 <select
                   value={filters.source}
                   onChange={e => setFilters({ ...filters, source: e.target.value })}
-                  className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none"
                 >
                   <option value="all">All Lead Sources</option>
                   <option value="JUSTDIAL">JUSTDIAL</option>
                   <option value="INDIAMART">INDIAMART</option>
-                  <option value="MANUAL">MANUAL</option>
-                  <option value="IMPORT">IMPORT</option>
+                  <option value="MANUAL">MANUAL ENTRY</option>
+                  <option value="IMPORT">CSV IMPORT</option>
                 </select>
               </div>
 
-              {/* Assigned Executive Filter (Admins only) */}
-              {currentUser?.role !== 'SALES_EXECUTIVE' && (
-                <div>
-                  <select
-                    value={filters.assigned_user_id}
-                    onChange={e => setFilters({ ...filters, assigned_user_id: e.target.value })}
-                    className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  >
-                    <option value="all">All Executives</option>
-                    {users.map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name} ({u.role})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <select
+                  value={filters.planned_filter}
+                  onChange={e => setFilters({ ...filters, planned_filter: e.target.value as any })}
+                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                >
+                  <option value="all">All Inquiries</option>
+                  <option value="overdue">Overdue Only (&gt;10 min late)</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* MAIN PLANNED CALLS TABLE (REQ 14, 60) */}
+          {/* PLANNED CALLS PRIORITY TABLE */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider border-b border-slate-800">
-                    <th className="py-3.5 px-4">Unique ID</th>
-                    <th className="py-3.5 px-4">Planned</th>
-                    <th className="py-3.5 px-4">Time Delay</th>
-                    <th className="py-3.5 px-4">Client Name</th>
-                    <th className="py-3.5 px-4">Contact Number</th>
-                    <th className="py-3.5 px-4 max-w-xs">Requirement</th>
-                    <th className="py-3.5 px-4">Others</th>
-                    <th className="py-3.5 px-4 max-w-xs">Remarks</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-center">Updates / Action</th>
+                  <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider">
+                    <th className="py-3.5 px-4 whitespace-nowrap">Unique ID</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Planned Time</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Time Delay</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Client Name</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Contact Number</th>
+                    <th className="py-3.5 px-4">Requirement</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Source</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
+                    <th className="py-3.5 px-4 text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                   {leads.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-12 text-center text-slate-400 italic">
-                        No planned calls match your filter criteria.
+                      <td colSpan={9} className="py-12 text-center text-slate-400 italic">
+                        No pending new inquiries! All calls have been handled and transferred to Follow-up / Not Reachable / Converted. 🎉
                       </td>
                     </tr>
                   ) : (
                     leads.map(lead => {
                       const delay = calculateTimeDelay(lead.current_planned_call_at);
-                      const lastCall = crmStore.getLastCallForLead(lead.id);
-
                       return (
                         <tr key={lead.id} className="hover:bg-slate-50 transition">
-                          
-                          {/* 1. Unique ID */}
                           <td className="py-3.5 px-4 font-mono font-bold text-sky-700 whitespace-nowrap">
                             {lead.unique_lead_id}
                           </td>
-
-                          {/* 2. Planned Time */}
-                          <td className="py-3.5 px-4 whitespace-nowrap font-medium">
-                            {formatIST(lead.current_planned_call_at)}
-                          </td>
-
-                          {/* 3. Time Delay (Req 13) */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span
-                              className={`px-2 py-1 rounded text-[10px] font-extrabold ${
-                                delay.isOverdue
-                                  ? 'bg-rose-100 text-rose-700 animate-pulse'
-                                  : delay.isDueNow
-                                  ? 'bg-amber-100 text-amber-800 font-bold'
-                                  : 'bg-emerald-100 text-emerald-700'
-                              }`}
-                            >
-                              {delay.text}
+                            <span className="font-semibold text-slate-800">
+                              {lead.current_planned_call_at ? formatIST(lead.current_planned_call_at) : 'Immediate'}
                             </span>
                           </td>
-
-                          {/* 4. Client Name */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            {delay.isOverdue ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
+                                {delay.text}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                {delay.text}
+                              </span>
+                            )}
+                          </td>
                           <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
                             {lead.customer_name}
                           </td>
-
-                          {/* 5. Contact Number + CALL button */}
+                          <td className="py-3.5 px-4 font-semibold text-slate-800 whitespace-nowrap">
+                            <a href={`tel:${lead.mobile_number}`} className="text-sky-600 hover:underline">
+                              {lead.mobile_number}
+                            </a>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-[200px] truncate text-slate-600">
+                            {lead.client_requirement || lead.enquiry_message || '—'}
+                          </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-semibold text-slate-800">{lead.mobile_number}</span>
-                              <a
-                                href={`tel:${lead.mobile_number}`}
-                                title="Call Customer"
-                                className="p-1 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition"
-                              >
-                                <PhoneCall className="w-3.5 h-3.5" />
-                              </a>
-                            </div>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">
+                              {lead.source}
+                            </span>
                           </td>
-
-                          {/* 6. Requirement */}
-                          <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={lead.client_requirement}>
-                            {lead.client_requirement || lead.enquiry_message || 'N/A'}
-                          </td>
-
-                          {/* 7. Others (Source, City, Company) */}
-                          <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-slate-500">
-                            <span className="font-semibold text-slate-700">{lead.source}</span>
-                            {lead.city && <span> • {lead.city}</span>}
-                          </td>
-
-                          {/* 8. Remarks (Req 20: latest remark visible) */}
-                          <td className="py-3.5 px-4 max-w-xs truncate text-slate-800 italic" title={lastCall?.remarks || 'No previous remarks'}>
-                            {lastCall ? (
-                              <span>"{lastCall.remarks}"</span>
-                            ) : (
-                              <span className="text-slate-400 font-normal">First Call — No previous remarks</span>
-                            )}
-                          </td>
-
-                          {/* 9. Status Badge */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                                lead.current_status === 'NEW'
-                                  ? 'bg-sky-100 text-sky-800'
-                                  : lead.current_status === 'FOLLOW_UP'
-                                  ? 'bg-purple-100 text-purple-800'
-                                  : lead.current_status === 'INTERESTED'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : lead.current_status === 'NOT_REACHABLE'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-slate-100 text-slate-700'
-                              }`}
-                            >
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
                               {lead.current_status}
                             </span>
                           </td>
-
-                          {/* 10. Updates / Action (Req 22) */}
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             <button
                               onClick={() => setSelectedLeadForCall(lead)}

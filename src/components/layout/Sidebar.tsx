@@ -15,7 +15,6 @@ import {
   Layers,
   Settings,
   LogOut,
-  Phone,
   FileSpreadsheet,
   PhoneOff,
 } from 'lucide-react';
@@ -27,22 +26,31 @@ export default function Sidebar() {
 
   const [kpis, setKpis] = useState({
     overdue_calls: 0,
+    new_inquiry_count: 0,
     followup_count: 0,
     not_reachable_count: 0,
   });
 
+  const fetchKpis = () => {
+    fetch(`/api/v1/kpis?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.kpis) {
+          setKpis(data.kpis);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
-    const fetchKpis = () => {
-      fetch('/api/v1/kpis')
-        .then(r => r.json())
-        .then(data => { if (data.success) setKpis(data.kpis); })
-        .catch(() => {});
-    };
     fetchKpis();
-    // Refresh KPIs every 60 seconds
-    const interval = setInterval(fetchKpis, 60000);
+    // Refresh KPIs every 15 seconds
+    const interval = setInterval(fetchKpis, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [pathname]);
 
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -50,15 +58,15 @@ export default function Sidebar() {
       name: 'New Inquiry',
       href: '/planned-calls',
       icon: PhoneCall,
-      badge: kpis.overdue_calls > 0 ? `${kpis.overdue_calls} Overdue` : null,
-      badgeColor: 'bg-rose-500 text-white animate-pulse',
+      badge: kpis.overdue_calls > 0 ? `${kpis.overdue_calls} Overdue` : kpis.new_inquiry_count > 0 ? `${kpis.new_inquiry_count}` : null,
+      badgeColor: kpis.overdue_calls > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-sky-500 text-white',
     },
     {
       name: 'Follow-ups',
       href: '/followups',
       icon: CalendarCheck,
       badge: kpis.followup_count > 0 ? `${kpis.followup_count}` : null,
-      badgeColor: 'bg-sky-500 text-white',
+      badgeColor: 'bg-purple-600 text-white',
     },
     {
       name: 'Not Reachable',
@@ -86,7 +94,7 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="font-bold text-white tracking-wide text-base leading-tight">FabricTraders</h1>
-          <p className="text-[10px] text-sky-400 font-semibold tracking-wider uppercase">Sales & Calling CRM</p>
+          <p className="text-[10px] text-sky-400 font-semibold tracking-wider uppercase">Sales &amp; Calling CRM</p>
         </div>
       </div>
 
