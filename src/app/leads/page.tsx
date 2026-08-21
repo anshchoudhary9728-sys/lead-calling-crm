@@ -23,9 +23,11 @@ import {
 } from 'lucide-react';
 import FabricRequirementInput from '@/components/crm/FabricRequirementInput';
 import { INDIAN_CITIES_SUGGESTIONS } from '@/constants/cities';
+import { useSources } from '@/lib/useSources';
 
 export default function LeadsMasterPage() {
   const { currentUser } = useAuth();
+  const { sources } = useSources();
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLeadForCall, setSelectedLeadForCall] = useState<Lead | null>(null);
   const [selectedLeadForQuote, setSelectedLeadForQuote] = useState<Lead | null>(null);
@@ -402,30 +404,17 @@ export default function LeadsMasterPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
-                  <select
-                    value={newLeadForm.source}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, source: e.target.value as LeadSource })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 font-bold text-purple-800"
-                  >
-                    <option value="MANUAL">Direct Call / Walk-in</option>
-                    <option value="OTHER">WhatsApp / Referral</option>
-                    <option value="JUSTDIAL">Justdial</option>
-                    <option value="INDIAMART">IndiaMART</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Specific Source Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. WhatsApp, Trade Fair"
-                    value={newLeadForm.custom_source}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, custom_source: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
+                <select
+                  value={newLeadForm.source}
+                  onChange={e => setNewLeadForm({ ...newLeadForm, source: e.target.value as any })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-500 font-bold text-purple-800 text-xs"
+                >
+                  {sources.map((s, idx) => (
+                    <option key={idx} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

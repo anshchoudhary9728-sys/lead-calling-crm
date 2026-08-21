@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import FabricRequirementInput from '@/components/crm/FabricRequirementInput';
 import { INDIAN_CITIES_SUGGESTIONS } from '@/constants/cities';
+import { useSources } from '@/lib/useSources';
+import CrmQueueFilterBar, { FilterValues } from '@/components/crm/CrmQueueFilterBar';
 
 export default function PlannedCallsDashboard() {
   const { currentUser } = useAuth();
@@ -47,15 +49,14 @@ export default function PlannedCallsDashboard() {
     assigned_user_id: '',
   });
 
-  // Filters State
-  const [filters, setFilters] = useState<LeadFilterState>({
+  const { sources } = useSources();
+  const [filters, setFilters] = useState<FilterValues>({
     search: '',
-    status: 'all',
-    source: 'all',
-    assigned_user_id: currentUser?.role === 'SALES_EXECUTIVE' ? currentUser.id : 'all',
-    date_range: 'all',
-    planned_filter: 'all',
+    date: '',
+    datePreset: 'ALL',
+    source: 'ALL',
   });
+  const [totalQueueCount, setTotalQueueCount] = useState(0);
 
   const [kpis, setKpis] = useState({
     todays_new_leads: 0,
@@ -95,6 +96,8 @@ export default function PlannedCallsDashboard() {
           return aTime - bTime;
         });
 
+      setTotalQueueCount(queue.length);
+
       // Compute KPIs accurately
       const todayStr = now.toISOString().substring(0, 10);
       const newLeads = allLeads.filter(l => l.current_status === 'NEW');
@@ -111,7 +114,7 @@ export default function PlannedCallsDashboard() {
         total_converted: allLeads.filter(l => l.current_status === 'CONVERTED').length,
       });
 
-      // Apply search/source filters
+      // Apply Search (Name, Mobile, ID, Fabric)
       let filtered = queue;
       if (filters.search) {
         const q = filters.search.toLowerCase().trim();
@@ -120,14 +123,22 @@ export default function PlannedCallsDashboard() {
             l.unique_lead_id?.toLowerCase().includes(q) ||
             l.customer_name?.toLowerCase().includes(q) ||
             l.mobile_number?.includes(q) ||
-            (l.company_name && l.company_name.toLowerCase().includes(q))
+            (l.company_name && l.company_name.toLowerCase().includes(q)) ||
+            (l.client_requirement && l.client_requirement.toLowerCase().includes(q))
         );
       }
-      if (filters.source !== 'all') {
-        filtered = filtered.filter(l => l.source === filters.source);
+
+      // Apply Date Filter (Calendar)
+      if (filters.date) {
+        filtered = filtered.filter(l => {
+          const lDate = (l.current_planned_call_at || l.lead_received_at || l.created_at || '').substring(0, 10);
+          return lDate === filters.date;
+        });
       }
-      if (filters.planned_filter === 'overdue') {
-        filtered = filtered.filter(l => l.current_planned_call_at && new Date(l.current_planned_call_at) < now);
+
+      // Apply Source Filter
+      if (filters.source && filters.source !== 'ALL') {
+        filtered = filtered.filter(l => l.source === filters.source);
       }
 
       setLeads(filtered);
@@ -267,46 +278,15 @@ export default function PlannedCallsDashboard() {
             </div>
           </div>
 
-          {/* FILTERS TOOLBAR */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Search Unique ID, Client Name, Mobile..."
-                  value={filters.search}
-                  onChange={e => setFilters({ ...filters, search: e.target.value })}
-                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <select
-                  value={filters.source}
-                  onChange={e => setFilters({ ...filters, source: e.target.value })}
-                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                >
-                  <option value="all">All Lead Sources</option>
-                  <option value="JUSTDIAL">JUSTDIAL</option>
-                  <option value="INDIAMART">INDIAMART</option>
-                  <option value="MANUAL">MANUAL ENTRY / DIRECT</option>
-                  <option value="OTHER">WHATSAPP / REFERRAL</option>
-                  <option value="IMPORT">CSV IMPORT</option>
-                </select>
-              </div>
-
-              <div>
-                <select
-                  value={filters.planned_filter}
-                  onChange={e => setFilters({ ...filters, planned_filter: e.target.value as any })}
-                  className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                >
-                  <option value="all">All Inquiries</option>
-                  <option value="overdue">Overdue Only (&gt;10 min late)</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          {/* FILTERS TOOLBAR (Date Calendar, Name, Mobile, Source) */}
+          <CrmQueueFilterBar
+            filters={filters}
+            onFilterChange={setFilters}
+            totalCount={totalQueueCount}
+            filteredCount={leads.length}
+            placeholder="Search New Inquiries by Name, Mobile, Unique ID, Fabric..."
+            dateLabel="Filter by Inquiry / Planned Call Date"
+          />
 
           {/* PLANNED CALLS PRIORITY TABLE */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -488,30 +468,17 @@ export default function PlannedCallsDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
-                  <select
-                    value={newLeadForm.source}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, source: e.target.value as LeadSource })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 font-bold text-purple-800"
-                  >
-                    <option value="MANUAL">Direct Call / Walk-in</option>
-                    <option value="OTHER">WhatsApp / Referral</option>
-                    <option value="JUSTDIAL">Justdial</option>
-                    <option value="INDIAMART">IndiaMART</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Specific Source Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. WhatsApp, Referral"
-                    value={newLeadForm.custom_source}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, custom_source: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
+                <select
+                  value={newLeadForm.source}
+                  onChange={e => setNewLeadForm({ ...newLeadForm, source: e.target.value as any })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-purple-500 font-bold text-purple-800 text-xs"
+                >
+                  {sources.map((s, idx) => (
+                    <option key={idx} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

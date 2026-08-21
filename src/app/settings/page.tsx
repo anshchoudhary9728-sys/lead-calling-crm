@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { crmStore } from '@/lib/crm-store';
 import { useFabrics } from '@/lib/useFabrics';
+import { useSources } from '@/lib/useSources';
 import { useAuth } from '@/context/AuthContext';
 import {
   Settings,
@@ -16,26 +17,33 @@ import {
   RotateCcw,
   AlertCircle,
   Clock,
-  ShieldAlert,
+  Radio,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'FABRICS' | 'ENGINE'>('FABRICS');
+  const [activeTab, setActiveTab] = useState<'FABRICS' | 'SOURCES' | 'ENGINE'>('FABRICS');
   
   // Call Engine Config State
   const [config, setConfig] = useState(crmStore.getSettings());
   const [savedMsg, setSavedMsg] = useState(false);
 
   // Fabrics Catalog State
-  const { fabrics, isLoading, addFabric, removeFabric, resetToDefault } = useFabrics();
+  const { fabrics, addFabric, removeFabric, resetToDefault: resetFabrics } = useFabrics();
   const [newFabricInput, setNewFabricInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [fabricSearchQuery, setFabricSearchQuery] = useState('');
   const [fabricSuccessMsg, setFabricSuccessMsg] = useState('');
   const [fabricErrorMsg, setFabricErrorMsg] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingFabric, setIsAddingFabric] = useState(false);
 
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || !currentUser;
+  // Lead Sources State
+  const { sources, addSource, removeSource, resetToDefault: resetSources } = useSources();
+  const [newSourceInput, setNewSourceInput] = useState('');
+  const [sourceSearchQuery, setSourceSearchQuery] = useState('');
+  const [sourceSuccessMsg, setSourceSuccessMsg] = useState('');
+  const [sourceErrorMsg, setSourceErrorMsg] = useState('');
+  const [isAddingSource, setIsAddingSource] = useState(false);
 
   const handleSaveEngine = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +62,9 @@ export default function SettingsPage() {
       return;
     }
 
-    setIsAdding(true);
+    setIsAddingFabric(true);
     const res = await addFabric(newFabricInput.trim());
-    setIsAdding(false);
+    setIsAddingFabric(false);
 
     if (res.success) {
       setFabricSuccessMsg(res.message || 'Fabric added successfully!');
@@ -79,17 +87,64 @@ export default function SettingsPage() {
 
   const handleResetFabrics = async () => {
     if (confirm('Are you sure you want to restore the default 200+ Master Fabric Catalog?')) {
-      await resetToDefault();
+      await resetFabrics();
       setFabricSuccessMsg('Master fabric catalog reset to defaults!');
       setTimeout(() => setFabricSuccessMsg(''), 3000);
     }
   };
 
+  const handleAddSource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSourceErrorMsg('');
+    setSourceSuccessMsg('');
+
+    if (!newSourceInput.trim()) {
+      setSourceErrorMsg('Please type a valid Lead Source name.');
+      return;
+    }
+
+    setIsAddingSource(true);
+    const res = await addSource(newSourceInput.trim());
+    setIsAddingSource(false);
+
+    if (res.success) {
+      setSourceSuccessMsg(res.message || 'Lead Source added successfully!');
+      setNewSourceInput('');
+      setTimeout(() => setSourceSuccessMsg(''), 3500);
+    } else {
+      setSourceErrorMsg(res.message || 'Failed to add source.');
+    }
+  };
+
+  const handleRemoveSource = async (name: string) => {
+    if (confirm(`Are you sure you want to remove source "${name}"?`)) {
+      const res = await removeSource(name);
+      if (res.success) {
+        setSourceSuccessMsg(res.message || 'Lead Source removed successfully!');
+        setTimeout(() => setSourceSuccessMsg(''), 3000);
+      }
+    }
+  };
+
+  const handleResetSources = async () => {
+    if (confirm('Are you sure you want to restore default Lead Sources?')) {
+      await resetSources();
+      setSourceSuccessMsg('Lead Sources reset to defaults!');
+      setTimeout(() => setSourceSuccessMsg(''), 3000);
+    }
+  };
+
   const filteredFabrics = React.useMemo(() => {
-    if (!searchQuery.trim()) return fabrics;
-    const q = searchQuery.toLowerCase().trim();
+    if (!fabricSearchQuery.trim()) return fabrics;
+    const q = fabricSearchQuery.toLowerCase().trim();
     return fabrics.filter(f => f.toLowerCase().includes(q));
-  }, [fabrics, searchQuery]);
+  }, [fabrics, fabricSearchQuery]);
+
+  const filteredSources = React.useMemo(() => {
+    if (!sourceSearchQuery.trim()) return sources;
+    const q = sourceSearchQuery.toLowerCase().trim();
+    return sources.filter(s => s.toLowerCase().includes(q));
+  }, [sources, sourceSearchQuery]);
 
   return (
     <div className="p-6 space-y-6 max-w-5xl">
@@ -100,15 +155,15 @@ export default function SettingsPage() {
             <Settings className="w-6 h-6 mr-2 text-purple-700" /> SYSTEM &amp; CRM SETTINGS
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Admin management for Master Fabric Catalog, Call Scheduling Engine, and business rules.
+            Admin management for Master Fabric Catalog, Dynamic Lead Sources, and Call Scheduling Rules.
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
+        <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-bold space-x-1">
           <button
             onClick={() => setActiveTab('FABRICS')}
-            className={`flex items-center px-4 py-2 rounded-lg transition ${
+            className={`flex items-center px-3.5 py-2 rounded-lg transition ${
               activeTab === 'FABRICS'
                 ? 'bg-purple-700 text-white shadow-md'
                 : 'text-slate-700 hover:text-slate-950'
@@ -118,8 +173,19 @@ export default function SettingsPage() {
             Fabric Catalog ({fabrics.length})
           </button>
           <button
+            onClick={() => setActiveTab('SOURCES')}
+            className={`flex items-center px-3.5 py-2 rounded-lg transition ${
+              activeTab === 'SOURCES'
+                ? 'bg-purple-700 text-white shadow-md'
+                : 'text-slate-700 hover:text-slate-950'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5 mr-1.5" />
+            Lead Sources ({sources.length})
+          </button>
+          <button
             onClick={() => setActiveTab('ENGINE')}
-            className={`flex items-center px-4 py-2 rounded-lg transition ${
+            className={`flex items-center px-3.5 py-2 rounded-lg transition ${
               activeTab === 'ENGINE'
                 ? 'bg-purple-700 text-white shadow-md'
                 : 'text-slate-700 hover:text-slate-950'
@@ -143,6 +209,20 @@ export default function SettingsPage() {
         <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl flex items-center shadow-sm">
           <AlertCircle className="w-4 h-4 mr-2 text-rose-600 flex-shrink-0" />
           <span>{fabricErrorMsg}</span>
+        </div>
+      )}
+
+      {sourceSuccessMsg && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center shadow-sm">
+          <CheckCircle className="w-4 h-4 mr-2 text-emerald-600 flex-shrink-0" />
+          <span>{sourceSuccessMsg}</span>
+        </div>
+      )}
+
+      {sourceErrorMsg && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl flex items-center shadow-sm">
+          <AlertCircle className="w-4 h-4 mr-2 text-rose-600 flex-shrink-0" />
+          <span>{sourceErrorMsg}</span>
         </div>
       )}
 
@@ -183,11 +263,11 @@ export default function SettingsPage() {
               </div>
               <button
                 type="submit"
-                disabled={isAdding || !newFabricInput.trim()}
+                disabled={isAddingFabric || !newFabricInput.trim()}
                 className="w-full sm:w-auto bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-6 py-3 rounded-xl flex items-center justify-center shadow-md transition disabled:opacity-50"
               >
                 <Plus className="w-4 h-4 mr-1.5" />
-                {isAdding ? 'Adding...' : '+ ADD FABRIC TO CATALOG'}
+                {isAddingFabric ? 'Adding...' : '+ ADD FABRIC TO CATALOG'}
               </button>
             </form>
           </div>
@@ -209,8 +289,8 @@ export default function SettingsPage() {
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  value={fabricSearchQuery}
+                  onChange={e => setFabricSearchQuery(e.target.value)}
                   placeholder="Search fabric name..."
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
                 />
@@ -221,7 +301,7 @@ export default function SettingsPage() {
             <div className="max-h-[480px] overflow-y-auto border border-slate-100 rounded-xl p-3 bg-slate-50/50">
               {filteredFabrics.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 italic text-xs">
-                  No fabric found matching "{searchQuery}". You can add it using the form above.
+                  No fabric found matching "{fabricSearchQuery}". You can add it using the form above.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
@@ -252,7 +332,116 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ================= TAB 2: CALL SCHEDULING ENGINE RULES ================= */}
+      {/* ================= TAB 2: LEAD SOURCES MANAGEMENT ================= */}
+      {activeTab === 'SOURCES' && (
+        <div className="space-y-6">
+          {/* Add New Source Card */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-black text-slate-900 flex items-center">
+                  <Radio className="w-4 h-4 mr-1.5 text-purple-700" />
+                  LEAD SOURCES MASTER MANAGEMENT (लीड सोर्स प्रबंधन)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Manage incoming inquiry source channels (e.g. IndiaMART, Justdial, TradeIndia, WhatsApp, Facebook, Expo).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetSources}
+                className="text-xs font-bold text-slate-500 hover:text-purple-700 flex items-center bg-slate-50 hover:bg-purple-50 px-3 py-1.5 rounded-lg border border-slate-200 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Restore Default Sources
+              </button>
+            </div>
+
+            {/* Add Source Form */}
+            <form onSubmit={handleAddSource} className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <input
+                  type="text"
+                  value={newSourceInput}
+                  onChange={e => setNewSourceInput(e.target.value)}
+                  placeholder="Enter new Lead Source name (e.g. TradeIndia, Google Ads, Surat Textile Expo 2026)..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isAddingSource || !newSourceInput.trim()}
+                className="w-full sm:w-auto bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-6 py-3 rounded-xl flex items-center justify-center shadow-md transition disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                {isAddingSource ? 'Adding...' : '+ ADD LEAD SOURCE'}
+              </button>
+            </form>
+          </div>
+
+          {/* Sources Listing Card */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Configured Sources:
+                </span>
+                <span className="bg-purple-100 text-purple-900 font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-purple-200">
+                  {sources.length} Channels
+                </span>
+              </div>
+
+              {/* Search Filter */}
+              <div className="relative w-full sm:w-72">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={sourceSearchQuery}
+                  onChange={e => setSourceSearchQuery(e.target.value)}
+                  placeholder="Search source name..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Sources Grid */}
+            <div className="border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+              {filteredSources.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 italic text-xs">
+                  No source found matching "{sourceSearchQuery}".
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {filteredSources.map((source, idx) => (
+                    <div
+                      key={source + idx}
+                      className="bg-white border border-slate-200 hover:border-purple-300 p-3 rounded-xl flex items-center justify-between group shadow-sm transition"
+                    >
+                      <div className="flex items-center space-x-2 truncate pr-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-600 flex-shrink-0"></span>
+                        <p className="text-xs font-bold text-slate-800 truncate" title={source}>
+                          {source}
+                        </p>
+                      </div>
+                      {sources.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSource(source)}
+                          title={`Remove "${source}"`}
+                          className="text-slate-300 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= TAB 3: CALL SCHEDULING ENGINE RULES ================= */}
       {activeTab === 'ENGINE' && (
         <div className="space-y-6">
           {savedMsg && (
