@@ -181,17 +181,19 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
       const firstItem = items[0] || { name: 'Fabric Order', quantity: 100, unit: 'Mtr', rate: 50, gst_rate: 5, amount: 5000 };
       const pdfUrl = `https://lead-calling-crm.vercel.app/quotation-view?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${firstItem.quantity}&unit=${firstItem.unit}&rate=${firstItem.rate}&gst=${firstItem.gst_rate}&amount=${firstItem.amount}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
 
+      const directPdfDownloadUrl = `https://lead-calling-crm.vercel.app/api/v1/quotations/pdf?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${encodeURIComponent(firstItem.quantity + ' ' + firstItem.unit)}&rate=${firstItem.rate}&total=${grandTotal.toLocaleString('en-IN')}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
+
       const res = await fetch('/api/v1/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipient: mobileNumber,
           message: message,
-          type: 'button',
-          media_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=800&auto=format&fit=crop',
-          button_text: '📄 View & Download Quotation',
-          button_url: pdfUrl,
-          footer: 'FabricTraders Textiles • Surat',
+          type: 'document',
+          document_url: directPdfDownloadUrl,
+          url: directPdfDownloadUrl,
+          document_name: `Quotation-${quoteNumber}.pdf`,
+          filename: `Quotation-${quoteNumber}.pdf`,
           priority: 1,
         }),
       });

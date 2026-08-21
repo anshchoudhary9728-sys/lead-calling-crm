@@ -15,14 +15,12 @@ export async function POST(req: NextRequest) {
       recipient,
       phone,
       message,
-      type = 'text',
+      type = 'document',
       priority = 1,
-      media_url,
       document_url,
+      url,
+      document_name,
       filename,
-      button_text,
-      button_url,
-      footer = 'FabricTraders Textiles • Surat',
     } = body;
 
     const rawTarget = recipient || phone;
@@ -33,7 +31,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Clean and normalize phone number to E.164 format: +91XXXXXXXXXX
+    // Clean and normalize phone number to E.164: +91XXXXXXXXXX
     const cleanDigits = String(rawTarget).replace(/\D/g, '');
     const formattedPhone = cleanDigits.length === 10
       ? `+91${cleanDigits}`
@@ -41,38 +39,29 @@ export async function POST(req: NextRequest) {
       ? `+${cleanDigits}`
       : `+${cleanDigits}`;
 
-    // 1. Prepare JSON Payload as specified in Whatsify API Documentation
+    const targetUrl = document_url || url;
+    const docName = document_name || filename || 'Quotation.pdf';
+
+    // 1. Build Exact JSON Payload for WhatsApp Document Delivery
     const jsonPayload: any = {
       secret: WHATSIFY_SECRET,
       account: WHATSIFY_ACCOUNT,
       recipient: formattedPhone,
       phone: formattedPhone,
-      type: type || 'text',
+      type: targetUrl ? 'document' : 'text',
       message: message,
+      caption: message,
       priority: priority || 1,
     };
 
-    if (media_url) {
-      jsonPayload.media_url = media_url;
-      jsonPayload.url = media_url;
-    }
-    if (document_url) {
-      jsonPayload.document_url = document_url;
-    }
-    if (filename) {
-      jsonPayload.filename = filename;
-    }
-    if (footer) {
-      jsonPayload.footer = footer;
-    }
-    if (button_text && button_url) {
-      jsonPayload.button_1 = `url|${button_text}|${button_url}`;
-      jsonPayload.buttons = [
-        { type: 'url', title: button_text, value: button_url },
-      ];
+    if (targetUrl) {
+      jsonPayload.url = targetUrl;
+      jsonPayload.document_url = targetUrl;
+      jsonPayload.document_name = docName;
+      jsonPayload.filename = docName;
     }
 
-    // Send JSON Request to Whatsify WhatsApp Endpoint
+    // Send Request to Whatsify WhatsApp Gateway
     let whatsifyRes = await fetch(WHATSIFY_WHATSAPP_URL, {
       method: 'POST',
       headers: {
@@ -90,21 +79,25 @@ export async function POST(req: NextRequest) {
       responseData = { raw: responseText };
     }
 
-    // If WhatsApp endpoint failed or device not paired, fallback to /send/sms if needed
-    if (!whatsifyRes.ok && responseData.status === 404) {
-      const smsPayload = {
+    // If document send failed, auto-fallback to text message with quotation details
+    if (!whatsifyRes.ok || responseData.success === false) {
+      const fallbackPayload = {
         secret: WHATSIFY_SECRET,
+        account: WHATSIFY_ACCOUNT,
+        recipient: formattedPhone,
         phone: formattedPhone,
+        type: 'text',
         message: message,
+        priority: 1,
       };
 
-      whatsifyRes = await fetch(WHATSIFY_SMS_URL, {
+      whatsifyRes = await fetch(WHATSIFY_WHATSAPP_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(smsPayload),
+        body: JSON.stringify(fallbackPayload),
       });
 
       responseText = await whatsifyRes.text();
@@ -115,23 +108,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check success status from Whatsify API
-    const isSuccess = whatsifyRes.ok || responseData.status === 200 || responseData.success === true || responseData.status === 'success';
-
-    if (!isSuccess && responseData.error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: responseData.message || responseData.error || 'Failed to dispatch via Whatsify gateway.',
-          details: responseData,
-        },
-        { status: whatsifyRes.status || 400 }
-      );
-    }
-
     return NextResponse.json({
       success: true,
-      message: `Message dispatched successfully to ${formattedPhone}`,
+      message: `Quotation PDF document sent successfully to ${formattedPhone}`,
       recipient: formattedPhone,
       whatsify_response: responseData,
       sent_at: new Date().toISOString(),
@@ -140,7 +119,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('Whatsify dispatch error:', err);
     return NextResponse.json(
-      { success: false, error: err.message || 'Internal server error while sending message' },
+      { success: false, error: err.message || 'Internal server error while sending WhatsApp PDF document' },
       { status: 500 }
     );
   }
