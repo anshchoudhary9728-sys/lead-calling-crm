@@ -87,7 +87,9 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
 
   const [notes, setNotes] = useState('Thank you for your inquiry. Quality sample swatches can be dispatched on request.');
 
-  // WhatsApp Sending State
+  // WhatsApp Sending & Save States
+  const [isSaving, setIsSaving] = useState(false);
+  const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [whatsAppSuccessMsg, setWhatsAppSuccessMsg] = useState('');
   const [whatsAppErrorMsg, setWhatsAppErrorMsg] = useState('');
@@ -166,47 +168,71 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
     return `*PRICE QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your inquiry. Please find attached our official price quotation PDF.\n\n📋 *ITEMS & RATES:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💵 *Taxable Subtotal:* ₹${subtotal.toLocaleString('en-IN')}\n📊 *GST Tax:* ₹${totalGst.toLocaleString('en-IN')}\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Representative:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Ring Road Market, Surat`;
   };
 
-  // Send WhatsApp via Whatsify API & Save Quotation to Supabase Database
-  const handleSendWhatsify = async () => {
-    setIsSendingWhatsApp(true);
-    setWhatsAppSuccessMsg('');
+  // 1. Save Quotation to Supabase Database
+  const handleSaveQuotation = async () => {
+    if (!customerName.trim()) {
+      alert('Please enter Customer Name');
+      return;
+    }
+    if (!mobileNumber.trim()) {
+      alert('Please enter WhatsApp Mobile Number');
+      return;
+    }
+
+    setIsSaving(true);
     setWhatsAppErrorMsg('');
+    setWhatsAppSuccessMsg('');
 
     try {
-      // 1. Save Quotation Record in Supabase for Client History & Reports
-      try {
-        await fetch('/api/v1/quotations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            quotation_number: quoteNumber,
-            lead_id: lead?.id,
-            lead_unique_id: lead?.unique_lead_id,
-            customer_name: customerName,
-            company_name: companyName,
-            mobile_number: mobileNumber,
-            city: city,
-            quotation_date: quotationDate,
-            valid_until_date: validUntil,
-            items: items,
-            subtotal: subtotal,
-            tax_type: taxType,
-            total_tax: totalGst,
-            grand_total: grandTotal,
-            grand_total_words: inWords(grandTotal),
-            terms_and_conditions: terms,
-            notes: notes,
-            status: 'SENT',
-            whatsapp_status: 'SENT',
-            created_by_user_id: currentUser?.id,
-            created_by_user_name: currentUser?.full_name,
-          }),
-        });
-      } catch (dbErr) {
-        console.warn('Quotation database save notice:', dbErr);
+      const res = await fetch('/api/v1/quotations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quotation_number: quoteNumber,
+          lead_id: lead?.id,
+          lead_unique_id: lead?.unique_lead_id,
+          customer_name: customerName.trim(),
+          company_name: companyName.trim(),
+          mobile_number: mobileNumber.trim(),
+          city: city.trim(),
+          quotation_date: quotationDate,
+          valid_until_date: validUntil,
+          items: items,
+          subtotal: subtotal,
+          tax_type: taxType,
+          total_tax: totalGst,
+          grand_total: grandTotal,
+          grand_total_words: inWords(grandTotal),
+          terms_and_conditions: terms,
+          notes: notes,
+          status: 'SAVED',
+          whatsapp_status: 'PENDING',
+          created_by_user_id: currentUser?.id,
+          created_by_user_name: currentUser?.full_name,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save quotation to database.');
       }
 
-      // 2. Send Formatted WhatsApp Message with Native PDF Attachment
+      // Show confirmation prompt: "Do you want to send on WhatsApp?"
+      setShowWhatsAppPrompt(true);
+    } catch (err: any) {
+      setWhatsAppErrorMsg(err.message || 'Quotation saving failed. Please check network.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 2. Confirmed: Send WhatsApp via Whatsify API
+  const handleConfirmSendWhatsApp = async () => {
+    setIsSendingWhatsApp(true);
+    setWhatsAppErrorMsg('');
+    setWhatsAppSuccessMsg('');
+
+    try {
       const message = formatWhatsAppMessage();
       const firstItem = items[0] || { name: 'Fabric Order', quantity: 100, unit: 'Mtr', rate: 50, gst_rate: 5, amount: 5000 };
       const directPdfDownloadUrl = `https://lead-calling-crm.vercel.app/api/v1/quotations/pdf?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${encodeURIComponent(firstItem.quantity + ' ' + firstItem.unit)}&rate=${firstItem.rate}&total=${grandTotal.toLocaleString('en-IN')}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
@@ -231,13 +257,24 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
         throw new Error(data.error || 'Failed to send WhatsApp message via Whatsify API.');
       }
 
-      setWhatsAppSuccessMsg(`Quotation ${quoteNumber} logged in Database & sent to WhatsApp (${data.recipient})! 🎉`);
-      if (onSuccess) onSuccess();
+      setWhatsAppSuccessMsg(`Quotation sent to WhatsApp (${data.recipient}) successfully! 🎉`);
+      setTimeout(() => {
+        setShowWhatsAppPrompt(false);
+        if (onSuccess) onSuccess();
+        onClose();
+      }, 1500);
     } catch (err: any) {
       setWhatsAppErrorMsg(err.message || 'WhatsApp sending failed. Please check number.');
     } finally {
       setIsSendingWhatsApp(false);
     }
+  };
+
+  // 3. Denied: Skip WhatsApp, just keep saved in CRM
+  const handleSkipWhatsApp = () => {
+    setShowWhatsAppPrompt(false);
+    if (onSuccess) onSuccess();
+    onClose();
   };
 
   // Direct WhatsApp Web fallback
@@ -723,19 +760,19 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
 
             <button
               type="button"
-              disabled={isSendingWhatsApp}
-              onClick={handleSendWhatsify}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl flex items-center shadow-md transition transform active:scale-95 disabled:opacity-50"
+              disabled={isSaving}
+              onClick={handleSaveQuotation}
+              className="bg-purple-900 hover:bg-purple-950 text-white text-xs font-bold px-6 py-2.5 rounded-xl flex items-center shadow-md transition transform active:scale-95 disabled:opacity-50"
             >
-              {isSendingWhatsApp ? (
+              {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending via WhatsApp...
+                  Saving Quotation...
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Send Quotation on WhatsApp
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" />
+                  Save Quotation (सेव करें)
                 </>
               )}
             </button>
@@ -743,6 +780,76 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
         </div>
 
       </div>
+
+      {/* Interactive WhatsApp Confirmation Dialog (After Saving) */}
+      {showWhatsAppPrompt && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-purple-100 text-center space-y-5 animate-in zoom-in-95 duration-200">
+            
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-black text-slate-900">Quotation Saved Successfully! 💾</h3>
+              <p className="text-xs text-slate-600">
+                Quotation <strong className="text-purple-950 font-mono font-bold">{quoteNumber}</strong> for <strong>{customerName}</strong> has been saved.
+              </p>
+            </div>
+
+            <div className="bg-purple-50/70 p-4 rounded-2xl border border-purple-200/80 text-xs text-left space-y-1">
+              <p className="text-[11px] text-purple-900 font-bold uppercase tracking-wider">Send on WhatsApp?</p>
+              <p className="text-slate-700 font-medium">
+                Do you want to send this official PDF Quotation to <strong className="text-slate-900">{mobileNumber}</strong> on WhatsApp now?
+              </p>
+            </div>
+
+            {whatsAppErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl text-center">
+                {whatsAppErrorMsg}
+              </div>
+            )}
+
+            {whatsAppSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-xl text-center">
+                {whatsAppSuccessMsg}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleSkipWhatsApp}
+                disabled={isSendingWhatsApp}
+                className="px-4 py-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold transition disabled:opacity-50"
+              >
+                NO, JUST SAVE (नहीं)
+              </button>
+
+              <button
+                type="button"
+                disabled={isSendingWhatsApp}
+                onClick={handleConfirmSendWhatsApp}
+                className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center space-x-1.5 shadow-lg transition transform active:scale-95 disabled:opacity-50"
+              >
+                {isSendingWhatsApp ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-1.5" />
+                    YES, SEND (हाँ भेजें)
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
