@@ -1,465 +1,308 @@
 'use client';
 
-import React, { useState, useEffect, useId } from 'react';
-import { Lead } from '@/types/crm';
-import { Quotation, QuotationItem, TaxType } from '@/types/quotation';
-import {
-  DEFAULT_COMPANY_PROFILE,
-  DEFAULT_TERMS_AND_CONDITIONS,
-  POPULAR_FABRIC_PRESETS,
-  numberToIndianRupeesWords,
-} from '@/lib/quotation-defaults';
-import QuotationTemplate from './QuotationTemplate';
+import React, { useState, useMemo } from 'react';
+import { QuotationItem } from '@/types/quotation';
 import { useAuth } from '@/context/AuthContext';
 import {
   X,
+  FileText,
+  Printer,
+  Send,
   Plus,
   Trash2,
-  Send,
-  Download,
-  Printer,
-  Eye,
-  Edit3,
   CheckCircle2,
   AlertCircle,
-  FileText,
-  MessageSquare,
-  Building,
-  Calendar,
-  CreditCard,
-  Layers,
-  Sparkles,
   Loader2,
+  Calendar,
+  Sparkles,
   ExternalLink,
+  MessageCircle,
+  Building,
+  User,
+  Phone,
+  MapPin,
+  DollarSign,
 } from 'lucide-react';
+
+import { Lead, Quotation } from '@/types/crm';
 
 interface QuotationModalProps {
   lead?: Lead | null;
   initialQuotation?: Quotation | null;
   onClose: () => void;
-  onSuccess?: (quotation: Quotation) => void;
+  onSuccess?: () => void;
 }
 
-export default function QuotationModal({
-  lead,
-  initialQuotation,
-  onClose,
-  onSuccess,
-}: QuotationModalProps) {
+export default function QuotationModal({ lead, initialQuotation, onClose, onSuccess }: QuotationModalProps) {
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
-  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Initialize Quotation State
+  // Quotation Metadata
   const todayStr = new Date().toISOString().substring(0, 10);
-  const validUntilStr = new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10);
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  const defaultQuoteNo = `QT-${todayStr.replace(/-/g, '')}-${randomSuffix}`;
+  const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+  
+  const generatedQuoteNumber = useMemo(() => {
+    const dStr = todayStr.replace(/-/g, '');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `QT-${dStr}-${rand}`;
+  }, []);
 
-  const [quotationNumber, setQuotationNumber] = useState(initialQuotation?.quotation_number || defaultQuoteNo);
+  const quoteNumber = initialQuotation?.quotation_number || generatedQuoteNumber;
+
   const [customerName, setCustomerName] = useState(initialQuotation?.customer_name || lead?.customer_name || '');
   const [companyName, setCompanyName] = useState(initialQuotation?.company_name || lead?.company_name || '');
   const [mobileNumber, setMobileNumber] = useState(initialQuotation?.mobile_number || lead?.mobile_number || '');
-  const [email, setEmail] = useState(initialQuotation?.email || lead?.email || '');
-  const [city, setCity] = useState(initialQuotation?.city || lead?.city || '');
-  const [state, setState] = useState(initialQuotation?.state || lead?.state || 'Gujarat');
-  const [billingAddress, setBillingAddress] = useState(initialQuotation?.billing_address || '');
-  const [gstin, setGstin] = useState(initialQuotation?.gstin || '');
-  
+  const [city, setCity] = useState(initialQuotation?.city || lead?.city || 'Surat');
   const [quotationDate, setQuotationDate] = useState(initialQuotation?.quotation_date || todayStr);
-  const [validUntilDate, setValidUntilDate] = useState(initialQuotation?.valid_until_date || validUntilStr);
+  const [validUntil, setValidUntil] = useState(initialQuotation?.valid_until_date || nextWeek);
+  const [taxType, setTaxType] = useState<'CGST_SGST' | 'IGST'>(
+    initialQuotation?.tax_type === 'IGST' ? 'IGST' : 'CGST_SGST'
+  );
 
-  // Line items
-  const initialItems: QuotationItem[] = initialQuotation?.items || [
-    {
-      id: `item-${Date.now()}-1`,
-      name: lead?.client_requirement ? lead.client_requirement.slice(0, 50) : 'Pure Cotton 60s Cambric (Grey/RFD)',
-      description: lead?.client_requirement || 'Premium grade fabric for garment and textile processing',
-      hsn_code: '5208',
-      quantity: 500,
-      unit: 'Mtr',
-      rate: 85,
-      gst_rate: 5,
-      amount: 42500,
-    },
-  ];
-  const [items, setItems] = useState<QuotationItem[]>(initialItems);
+  // Items List
+  const [items, setItems] = useState<QuotationItem[]>(
+    initialQuotation?.items && initialQuotation.items.length > 0
+      ? initialQuotation.items
+      : [
+          {
+            id: 'item-1',
+            name: lead?.client_requirement || '100% Cotton 60x60 Cambric Fabric',
+            hsn_code: '5208',
+            quantity: 500,
+            unit: 'Mtr',
+            rate: 85,
+            gst_rate: 5,
+            amount: 42500,
+          },
+        ]
+  );
 
-  // Taxes & Discounts
-  const [discountType, setDiscountType] = useState<'PERCENTAGE' | 'FIXED'>(initialQuotation?.discount_type || 'PERCENTAGE');
-  const [discountValue, setDiscountValue] = useState<number>(initialQuotation?.discount_value || 0);
-  const [taxType, setTaxType] = useState<TaxType>(initialQuotation?.tax_type || 'CGST_SGST');
-  const [shippingCharges, setShippingCharges] = useState<number>(initialQuotation?.shipping_charges || 0);
-  const [notes, setNotes] = useState(initialQuotation?.notes || 'Thank you for your business inquiry with Fabric Traders!');
-  const [terms, setTerms] = useState<string[]>(initialQuotation?.terms_and_conditions || DEFAULT_TERMS_AND_CONDITIONS);
+  // Terms & Conditions
+  const [terms, setTerms] = useState<string[]>([
+    'Payment Terms: 30% Advance along with Order Confirmation, balance before dispatch.',
+    'Delivery: Dispatch within 3-5 working days from our Surat warehouse.',
+    'Freight / Transport: Extra at actuals on TO-PAY basis.',
+    'GST: Rates mentioned are subject to applicable GST taxes.',
+    'Quotation Validity: Valid for 7 days from the date of issuance.',
+  ]);
 
-  // Add Item
-  const handleAddItem = (preset?: typeof POPULAR_FABRIC_PRESETS[0]) => {
-    const newItem: QuotationItem = {
-      id: `item-${Date.now()}-${items.length + 1}`,
-      name: preset ? preset.name : '',
-      description: '',
-      hsn_code: preset ? preset.hsn_code : '5208',
-      quantity: 100,
-      unit: preset ? preset.defaultUnit : 'Mtr',
-      rate: preset ? preset.defaultRate : 100,
-      gst_rate: preset ? preset.gst_rate : 5,
-      amount: (preset ? preset.defaultRate : 100) * 100,
-    };
-    setItems([...items, newItem]);
+  const [notes, setNotes] = useState('Thank you for your inquiry. Quality sample swatches can be dispatched on request.');
+
+  // WhatsApp Sending State
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [whatsAppSuccessMsg, setWhatsAppSuccessMsg] = useState('');
+  const [whatsAppErrorMsg, setWhatsAppErrorMsg] = useState('');
+  const [activeView, setActiveView] = useState<'EDIT' | 'PREVIEW'>('EDIT');
+
+  // Calculate Totals
+  const subtotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.rate) || 0), 0);
+  }, [items]);
+
+  const totalGst = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const itemTotal = Number(item.quantity) * Number(item.rate) || 0;
+      return sum + (itemTotal * (Number(item.gst_rate) / 100) || 0);
+    }, 0);
+  }, [items]);
+
+  const grandTotal = Math.round(subtotal + totalGst);
+
+  // Number to Indian Words Helper
+  const inWords = (num: number): string => {
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    if ((num = num.toString() as any).length > 9) return 'overflow';
+    const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n) return '';
+    let str = '';
+    str += (Number(n[1]) != 0) ? (a[Number(n[1])] || b[n[1][0] as any] + ' ' + a[n[1][1] as any]) + 'Crore ' : '';
+    str += (Number(n[2]) != 0) ? (a[Number(n[2])] || b[n[2][0] as any] + ' ' + a[n[2][1] as any]) + 'Lakh ' : '';
+    str += (Number(n[3]) != 0) ? (a[Number(n[3])] || b[n[3][0] as any] + ' ' + a[n[3][1] as any]) + 'Thousand ' : '';
+    str += (Number(n[4]) != 0) ? (a[Number(n[4])] || b[n[4][0] as any] + ' ' + a[n[4][1] as any]) + 'Hundred ' : '';
+    str += (Number(n[5]) != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0] as any] + ' ' + a[n[5][1] as any]) + 'Only ' : 'Only';
+    return 'Rupees ' + str;
   };
 
-  const handleUpdateItem = (id: string, field: keyof QuotationItem, val: any) => {
-    setItems(
-      items.map(item => {
-        if (item.id === id) {
-          const updated = { ...item, [field]: val };
-          if (field === 'quantity' || field === 'rate') {
-            const q = field === 'quantity' ? parseFloat(val) || 0 : item.quantity;
-            const r = field === 'rate' ? parseFloat(val) || 0 : item.rate;
-            updated.amount = q * r;
-          }
-          return updated;
-        }
-        return item;
-      })
-    );
+  // Item List handlers
+  const handleAddItem = () => {
+    setItems([
+      ...items,
+      {
+        id: `item-${Date.now()}`,
+        name: '',
+        hsn_code: '5208',
+        quantity: 100,
+        unit: 'Mtr',
+        rate: 50,
+        gst_rate: 5,
+        amount: 5000,
+      },
+    ]);
   };
 
-  const handleRemoveItem = (id: string) => {
-    if (items.length <= 1) {
-      setFeedback({ type: 'error', message: 'At least one line item is required.' });
-      return;
+  const handleUpdateItem = (index: number, field: keyof QuotationItem, val: any) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [field]: val };
+    if (field === 'quantity' || field === 'rate') {
+      const q = field === 'quantity' ? Number(val) : updated[index].quantity;
+      const r = field === 'rate' ? Number(val) : updated[index].rate;
+      updated[index].amount = (q || 0) * (r || 0);
     }
-    setItems(items.filter(i => i.id !== id));
+    setItems(updated);
   };
 
-  // Calculations
-  const subtotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  
-  let discountAmount = 0;
-  if (discountType === 'PERCENTAGE') {
-    discountAmount = (subtotal * (Number(discountValue) || 0)) / 100;
-  } else {
-    discountAmount = Number(discountValue) || 0;
-  }
-  
-  const taxableAmount = Math.max(0, subtotal - discountAmount);
-  
-  let cgstRate = 0;
-  let cgstAmount = 0;
-  let sgstRate = 0;
-  let sgstAmount = 0;
-  let igstRate = 0;
-  let igstAmount = 0;
-  
-  if (taxType === 'CGST_SGST') {
-    cgstRate = 2.5;
-    sgstRate = 2.5;
-    cgstAmount = (taxableAmount * cgstRate) / 100;
-    sgstAmount = (taxableAmount * sgstRate) / 100;
-  } else if (taxType === 'IGST') {
-    igstRate = 5.0;
-    igstAmount = (taxableAmount * igstRate) / 100;
-  }
-  
-  const totalTax = cgstAmount + sgstAmount + igstAmount;
-  const rawGrandTotal = taxableAmount + totalTax + Number(shippingCharges || 0);
-  const grandTotal = Math.round(rawGrandTotal);
-  const roundOff = Number((grandTotal - rawGrandTotal).toFixed(2));
-  const grandTotalWords = numberToIndianRupeesWords(grandTotal);
-
-  // Build Full Quotation Object
-  const currentQuotation: Quotation = {
-    id: initialQuotation?.id || `qt-${Date.now()}`,
-    quotation_number: quotationNumber,
-    lead_id: lead?.id,
-    lead_unique_id: lead?.unique_lead_id,
-    customer_name: customerName,
-    company_name: companyName,
-    mobile_number: mobileNumber,
-    email,
-    billing_address: billingAddress,
-    city,
-    state,
-    gstin,
-    quotation_date: quotationDate,
-    valid_until_date: validUntilDate,
-    items,
-    subtotal,
-    discount_type: discountType,
-    discount_value: discountValue,
-    discount_amount: discountAmount,
-    taxable_amount: taxableAmount,
-    tax_type: taxType,
-    cgst_rate: cgstRate,
-    cgst_amount: cgstAmount,
-    sgst_rate: sgstRate,
-    sgst_amount: sgstAmount,
-    igst_rate: igstRate,
-    igst_amount: igstAmount,
-    total_tax: totalTax,
-    shipping_charges: Number(shippingCharges) || 0,
-    round_off: roundOff,
-    grand_total: grandTotal,
-    grand_total_words: grandTotalWords,
-    terms_and_conditions: terms,
-    notes,
-    company_profile: DEFAULT_COMPANY_PROFILE,
-    status: 'SENT',
-    whatsapp_status: 'PENDING',
-    created_by_user_id: currentUser?.id,
-    created_by_user_name: currentUser?.full_name || 'Fabric Traders Sales Team',
-    created_at: initialQuotation?.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+  const handleRemoveItem = (index: number) => {
+    if (items.length <= 1) return;
+    setItems(items.filter((_, i) => i !== index));
   };
 
-  // Generate Structured WhatsApp Message text
-  const generateWhatsAppMessage = () => {
-    let msg = `*FABRIC TRADERS - PROFORMA QUOTATION*\n`;
-    msg += `------------------------------------\n`;
-    msg += `📄 *Quote No:* ${currentQuotation.quotation_number}\n`;
-    msg += `📅 *Date:* ${currentQuotation.quotation_date}\n`;
-    msg += `⏳ *Valid Until:* ${currentQuotation.valid_until_date}\n\n`;
-    msg += `👤 *Customer:* ${currentQuotation.customer_name}${currentQuotation.company_name ? ` (${currentQuotation.company_name})` : ''}\n`;
-    msg += `📱 *Phone:* ${currentQuotation.mobile_number}\n`;
-    if (currentQuotation.city) msg += `📍 *City:* ${currentQuotation.city}\n`;
-    msg += `\n*ITEMS & SPECIFICATIONS:*\n`;
-    
-    currentQuotation.items.forEach((item, index) => {
-      msg += `${index + 1}. *${item.name}*\n`;
-      msg += `   Qty: ${item.quantity} ${item.unit} @ ₹${item.rate}/${item.unit} = ₹${item.amount.toLocaleString('en-IN')}\n`;
-    });
+  // Generate WhatsApp Message Text
+  const formatWhatsAppMessage = (): string => {
+    const itemListText = items
+      .map((item, idx) => `*${idx + 1}. ${item.name}*\n   Qty: ${item.quantity} ${item.unit} @ ₹${item.rate}/${item.unit} (+${item.gst_rate}% GST) = *₹${item.amount.toLocaleString('en-IN')}*`)
+      .join('\n\n');
 
-    msg += `\n------------------------------------\n`;
-    msg += `*Subtotal:* ₹${currentQuotation.subtotal.toLocaleString('en-IN')}\n`;
-    if (currentQuotation.discount_amount > 0) {
-      msg += `*Discount:* -₹${currentQuotation.discount_amount.toLocaleString('en-IN')}\n`;
-    }
-    if (currentQuotation.tax_type === 'CGST_SGST') {
-      msg += `*GST (CGST+SGST 5%):* ₹${currentQuotation.total_tax.toLocaleString('en-IN')}\n`;
-    } else if (currentQuotation.tax_type === 'IGST') {
-      msg += `*GST (IGST 5%):* ₹${currentQuotation.total_tax.toLocaleString('en-IN')}\n`;
-    }
-    if (currentQuotation.shipping_charges > 0) {
-      msg += `*Freight:* ₹${currentQuotation.shipping_charges.toLocaleString('en-IN')}\n`;
-    }
-    msg += `\n💰 *GRAND TOTAL: ₹${currentQuotation.grand_total.toLocaleString('en-IN')}*\n`;
-    msg += `_${currentQuotation.grand_total_words}_\n\n`;
-
-    msg += `*BANK DETAILS FOR ADVANCE:*\n`;
-    msg += `🏦 *Bank:* ${DEFAULT_COMPANY_PROFILE.bank_details.bank_name}\n`;
-    msg += `👤 *A/C Name:* ${DEFAULT_COMPANY_PROFILE.bank_details.account_name}\n`;
-    msg += `🔢 *A/C No:* ${DEFAULT_COMPANY_PROFILE.bank_details.account_number}\n`;
-    msg += `🏛️ *IFSC:* ${DEFAULT_COMPANY_PROFILE.bank_details.ifsc_code}\n`;
-    if (DEFAULT_COMPANY_PROFILE.bank_details.upi_id) {
-      msg += `📲 *UPI:* ${DEFAULT_COMPANY_PROFILE.bank_details.upi_id}\n`;
-    }
-
-    msg += `\n📞 *Contact Sales:* ${DEFAULT_COMPANY_PROFILE.phone}\n`;
-    msg += `🏢 *Fabric Traders, Surat, Gujarat*`;
-    return msg;
-  };
-
-  // Save Quotation to Supabase
-  const saveQuotationToDatabase = async () => {
-    setIsSaving(true);
-    try {
-      const res = await fetch('/api/v1/quotations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentQuotation),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to save quotation.');
-      }
-      return data.quotation || currentQuotation;
-    } catch (err: any) {
-      console.error('Error saving quotation:', err);
-      return currentQuotation;
-    } finally {
-      setIsSaving(false);
-    }
+    return `*QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your valuable inquiry. Here is our best price quotation:\n\n📋 *ITEMS & RATES:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💵 *Subtotal:* ₹${subtotal.toLocaleString('en-IN')}\n📊 *GST Tax:* ₹${totalGst.toLocaleString('en-IN')}\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Executive:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Surat, Gujarat`;
   };
 
   // Send WhatsApp via Whatsify API
   const handleSendWhatsify = async () => {
-    if (!mobileNumber.trim()) {
-      setFeedback({ type: 'error', message: 'Customer Mobile Number is required for WhatsApp.' });
-      return;
-    }
-
     setIsSendingWhatsApp(true);
-    setFeedback(null);
+    setWhatsAppSuccessMsg('');
+    setWhatsAppErrorMsg('');
 
     try {
-      // 1. Save quotation first
-      const saved = await saveQuotationToDatabase();
-
-      // 2. Send via Whatsify API
-      const whatsappMsg = generateWhatsAppMessage();
+      const message = formatWhatsAppMessage();
       const res = await fetch('/api/v1/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipient: mobileNumber,
-          message: whatsappMsg,
-          lead_id: lead?.id,
-          quotation_id: saved.id || quotationNumber,
+          message: message,
+          priority: 1,
         }),
       });
 
       const data = await res.json();
-
       if (!res.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to send WhatsApp message via Whatsify.');
+        throw new Error(data.error || 'Failed to send WhatsApp message via Whatsify API.');
       }
 
-      setFeedback({
-        type: 'success',
-        message: `✅ Quotation ${quotationNumber} sent successfully to ${mobileNumber} via Whatsify WhatsApp!`,
-      });
-
-      if (onSuccess) {
-        onSuccess({ ...saved, whatsapp_status: 'SENT' });
-      }
+      setWhatsAppSuccessMsg(`Quotation sent to WhatsApp (${data.recipient}) successfully! 🎉`);
+      if (onSuccess) onSuccess();
     } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        message: `WhatsApp API Error: ${err.message}. You can also use the direct 'Open WhatsApp' button below.`,
-      });
+      setWhatsAppErrorMsg(err.message || 'WhatsApp sending failed. Please check number.');
     } finally {
       setIsSendingWhatsApp(false);
     }
   };
 
-  // Open Direct WhatsApp Web Chat
+  // Direct WhatsApp Web fallback
   const handleOpenWhatsAppWeb = () => {
-    const cleanDigits = mobileNumber.replace(/\D/g, '');
-    const phoneWith91 = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
-    const msgEncoded = encodeURIComponent(generateWhatsAppMessage());
-    const waUrl = `https://wa.me/${phoneWith91}?text=${msgEncoded}`;
-    window.open(waUrl, '_blank');
+    const message = encodeURIComponent(formatWhatsAppMessage());
+    const cleanPhone = mobileNumber.replace(/\D/g, '');
+    const phoneWithCode = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    window.open(`https://wa.me/${phoneWithCode}?text=${message}`, '_blank');
   };
 
-  // Direct Print
+  // Print PDF Trigger
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-center items-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      
+      {/* Quotation Dialog Container */}
+      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-purple-900/30">
         
-        {/* MODAL HEADER */}
-        <div className="bg-gradient-to-r from-[#1e0a38] via-[#280c4a] to-[#140426] text-white px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-purple-900/40">
+        {/* Header Bar */}
+        <div className="bg-gradient-to-r from-[#1e0a38] via-[#280c4a] to-[#140426] text-white px-6 py-4 flex items-center justify-between border-b border-purple-900/40">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center text-white shadow-md">
-              <FileText className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-black tracking-tight text-white flex items-center">
-                FABRIC QUOTATION &amp; PROFORMA INVOICE
-                <span className="ml-2 text-[10px] font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full uppercase">
-                  Whatsify Connected
+              <div className="flex items-center space-x-2">
+                <h2 className="text-base font-black text-white">GENERATE QUOTATION &amp; WHATSAPP</h2>
+                <span className="bg-purple-500/30 text-purple-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-full border border-purple-400/30">
+                  {quoteNumber}
                 </span>
-              </h2>
-              <p className="text-[11px] text-purple-200">
-                {lead ? `For Lead: ${lead.customer_name} (${lead.unique_lead_id})` : 'Create Custom Quotation'}
+              </div>
+              <p className="text-[11px] text-purple-200 mt-0.5">
+                Client: <strong>{customerName}</strong> {lead?.unique_lead_id ? `(${lead.unique_lead_id})` : ''}
               </p>
             </div>
           </div>
 
-          {/* TAB SWITCHER */}
-          <div className="flex items-center space-x-1 bg-purple-950/80 p-1 rounded-xl border border-purple-800/60 text-xs">
+          {/* Toggle Edit / Preview & Close */}
+          <div className="flex items-center space-x-2">
+            <div className="bg-purple-950/80 p-1 rounded-xl border border-purple-800/60 flex text-xs font-bold">
+              <button
+                onClick={() => setActiveView('EDIT')}
+                className={`px-3 py-1 rounded-lg transition ${activeView === 'EDIT' ? 'bg-purple-600 text-white shadow' : 'text-purple-300 hover:text-white'}`}
+              >
+                Edit Form
+              </button>
+              <button
+                onClick={() => setActiveView('PREVIEW')}
+                className={`px-3 py-1 rounded-lg transition ${activeView === 'PREVIEW' ? 'bg-purple-600 text-white shadow' : 'text-purple-300 hover:text-white'}`}
+              >
+                PDF Template Preview
+              </button>
+            </div>
+
             <button
-              onClick={() => setActiveTab('edit')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center ${
-                activeTab === 'edit'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-purple-300 hover:text-white'
-              }`}
+              onClick={onClose}
+              className="p-1.5 text-purple-300 hover:text-white rounded-lg hover:bg-white/10 transition"
             >
-              <Edit3 className="w-3.5 h-3.5 mr-1.5" /> 1. Quotation Form
-            </button>
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center ${
-                activeTab === 'preview'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-purple-300 hover:text-white'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5 mr-1.5" /> 2. Branded PDF Template
+              <X className="w-6 h-6" />
             </button>
           </div>
-
-          <button
-            onClick={onClose}
-            className="text-purple-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
-        {/* FEEDBACK BANNER */}
-        {feedback && (
-          <div
-            className={`px-6 py-3 text-xs font-semibold flex items-center justify-between ${
-              feedback.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border-b border-emerald-200'
-                : 'bg-rose-50 text-rose-800 border-b border-rose-200'
-            }`}
-          >
+        {/* WhatsApp Notification Alerts */}
+        {whatsAppSuccessMsg && (
+          <div className="p-3 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between px-6">
             <div className="flex items-center space-x-2">
-              {feedback.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-              )}
-              <span>{feedback.message}</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>{whatsAppSuccessMsg}</span>
             </div>
-            <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-700">
-              <X className="w-4 h-4" />
-            </button>
+            <button onClick={() => setWhatsAppSuccessMsg('')} className="text-emerald-600 hover:underline">Dismiss</button>
           </div>
         )}
 
-        {/* MODAL BODY (SCROLLABLE) */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-6">
+        {whatsAppErrorMsg && (
+          <div className="p-3 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between px-6">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <span>{whatsAppErrorMsg}</span>
+            </div>
+            <button onClick={() => setWhatsAppErrorMsg('')} className="text-rose-600 hover:underline">Dismiss</button>
+          </div>
+        )}
+
+        {/* Modal Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 print:bg-white print:p-0">
           
-          {activeTab === 'edit' ? (
-            <div className="space-y-6">
+          {/* ================= VIEW 1: EDIT FORM ================= */}
+          {activeView === 'EDIT' && (
+            <div className="space-y-5">
               
-              {/* 1. CUSTOMER & QUOTE META ROW */}
+              {/* Customer & Quote Information Card */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center">
-                  <Building className="w-4 h-4 mr-1.5 text-purple-700" /> Buyer / Customer Information &amp; Validity
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
+                  <User className="w-4 h-4 mr-1.5 text-purple-700" /> Customer &amp; Quotation Details
                 </h3>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Customer / Client Name *</label>
                     <input
                       type="text"
-                      required
                       value={customerName}
                       onChange={e => setCustomerName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-semibold focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">WhatsApp / Mobile *</label>
-                    <input
-                      type="text"
-                      required
-                      value={mobileNumber}
-                      onChange={e => setMobileNumber(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono font-semibold focus:ring-2 focus:ring-purple-500"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-slate-900 focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
 
@@ -467,41 +310,42 @@ export default function QuotationModal({
                     <label className="block font-bold text-slate-700 mb-1">Company / Firm Name</label>
                     <input
                       type="text"
-                      placeholder="e.g. Goyal Fabrics Ltd"
                       value={companyName}
                       onChange={e => setCompanyName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
+                      placeholder="e.g. Ramesh Textiles"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">City / State</label>
+                    <label className="block font-bold text-slate-700 mb-1">WhatsApp Mobile Number *</label>
                     <input
                       type="text"
-                      placeholder="e.g. Surat, Gujarat"
+                      value={mobileNumber}
+                      onChange={e => setMobileNumber(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">City / Location</label>
+                    <input
+                      type="text"
                       value={city}
                       onChange={e => setCity(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-slate-100">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Quotation Number</label>
-                    <input
-                      type="text"
-                      value={quotationNumber}
-                      onChange={e => setQuotationNumber(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono font-bold text-purple-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Quote Date</label>
+                    <label className="block font-bold text-slate-700 mb-1">Quotation Date</label>
                     <input
                       type="date"
                       value={quotationDate}
                       onChange={e => setQuotationDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2"
                     />
                   </div>
 
@@ -509,326 +353,346 @@ export default function QuotationModal({
                     <label className="block font-bold text-slate-700 mb-1">Valid Until Date</label>
                     <input
                       type="date"
-                      value={validUntilDate}
-                      onChange={e => setValidUntilDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-purple-800 font-semibold"
+                      value={validUntil}
+                      onChange={e => setValidUntil(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Buyer GSTIN (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 24AAAAA0000A1Z5"
-                      value={gstin}
-                      onChange={e => setGstin(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono uppercase"
-                    />
+                    <label className="block font-bold text-slate-700 mb-1">GST Tax Format</label>
+                    <select
+                      value={taxType}
+                      onChange={e => setTaxType(e.target.value as any)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-purple-800"
+                    >
+                      <option value="CGST_SGST">Intra-State (CGST + SGST)</option>
+                      <option value="IGST">Inter-State (IGST)</option>
+                    </select>
                   </div>
                 </div>
               </div>
 
-              {/* 2. FAST FABRIC PRESETS BAR */}
-              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-2xl border border-purple-200 space-y-2">
+              {/* Items & Pricing Card */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-black text-purple-950 uppercase tracking-wider flex items-center">
-                    <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-700" /> Quick Add Fabric Presets (1-Click):
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {POPULAR_FABRIC_PRESETS.map((p, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleAddItem(p)}
-                      className="text-[11px] font-bold bg-white text-purple-900 hover:bg-purple-700 hover:text-white px-2.5 py-1 rounded-lg border border-purple-200 shadow-sm transition flex items-center"
-                    >
-                      <Plus className="w-3 h-3 mr-1" /> {p.name} (₹{p.defaultRate}/{p.defaultUnit})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3. DYNAMIC LINE ITEMS BUILDER */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center">
-                    <Layers className="w-4 h-4 mr-1.5 text-purple-700" /> Quotation Line Items ({items.length})
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
+                    <DollarSign className="w-4 h-4 mr-1.5 text-purple-700" /> Quotation Fabric Items &amp; Pricing
                   </h3>
                   <button
                     type="button"
-                    onClick={() => handleAddItem()}
-                    className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center shadow-sm transition"
+                    onClick={handleAddItem}
+                    className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center transition border border-purple-200"
                   >
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Custom Item
+                    <Plus className="w-3.5 h-3.5 mr-1" /> + Add Another Item
                   </button>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase">
-                        <th className="py-2.5 px-3">Fabric / Item Name</th>
-                        <th className="py-2.5 px-3 w-20">HSN</th>
-                        <th className="py-2.5 px-3 w-24">Quantity</th>
-                        <th className="py-2.5 px-3 w-20">Unit</th>
-                        <th className="py-2.5 px-3 w-24">Rate (₹)</th>
-                        <th className="py-2.5 px-3 w-20">GST %</th>
-                        <th className="py-2.5 px-3 w-28 text-right">Amount (₹)</th>
-                        <th className="py-2.5 px-2 w-10 text-center">Del</th>
+                      <tr className="bg-slate-100 text-slate-700 text-[11px] font-bold uppercase tracking-wider">
+                        <th className="py-2.5 px-3">#</th>
+                        <th className="py-2.5 px-3 w-2/5">Item / Fabric Description</th>
+                        <th className="py-2.5 px-3">HSN</th>
+                        <th className="py-2.5 px-3">Qty</th>
+                        <th className="py-2.5 px-3">Unit</th>
+                        <th className="py-2.5 px-3">Rate (₹)</th>
+                        <th className="py-2.5 px-3">GST %</th>
+                        <th className="py-2.5 px-3 text-right">Amount (₹)</th>
+                        <th className="py-2.5 px-3 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody className="divide-y divide-slate-100">
                       {items.map((item, idx) => (
                         <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-3 font-bold text-slate-500">{idx + 1}</td>
+                          <td className="py-2 px-3">
                             <input
                               type="text"
                               required
-                              placeholder="e.g. Pure Cotton 60s Cambric"
+                              placeholder="e.g. Cotton Cambric 60x60"
                               value={item.name}
-                              onChange={e => handleUpdateItem(item.id, 'name', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-semibold text-xs"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Optional description/specifications..."
-                              value={item.description || ''}
-                              onChange={e => handleUpdateItem(item.id, 'description', e.target.value)}
-                              className="w-full bg-transparent text-[11px] text-slate-500 placeholder-slate-400 p-0.5 mt-1 border-none focus:ring-0"
+                              onChange={e => handleUpdateItem(idx, 'name', e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-semibold text-slate-900"
                             />
                           </td>
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-3">
                             <input
                               type="text"
-                              value={item.hsn_code || '5208'}
-                              onChange={e => handleUpdateItem(item.id, 'hsn_code', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono text-xs text-center"
+                              value={item.hsn_code}
+                              onChange={e => handleUpdateItem(idx, 'hsn_code', e.target.value)}
+                              className="w-16 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono text-center"
                             />
                           </td>
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-3">
                             <input
                               type="number"
                               min="1"
                               value={item.quantity}
-                              onChange={e => handleUpdateItem(item.id, 'quantity', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono font-bold text-xs"
+                              onChange={e => handleUpdateItem(idx, 'quantity', e.target.value)}
+                              className="w-20 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold text-center"
                             />
                           </td>
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-3">
                             <select
                               value={item.unit}
-                              onChange={e => handleUpdateItem(item.id, 'unit', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-semibold"
+                              onChange={e => handleUpdateItem(idx, 'unit', e.target.value)}
+                              className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold"
                             >
                               <option value="Mtr">Mtr</option>
                               <option value="Kg">Kg</option>
                               <option value="Pcs">Pcs</option>
                               <option value="Roll">Roll</option>
                               <option value="Than">Than</option>
-                              <option value="Unit">Unit</option>
                             </select>
                           </td>
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-3">
                             <input
                               type="number"
                               min="0"
-                              step="0.01"
+                              step="0.5"
                               value={item.rate}
-                              onChange={e => handleUpdateItem(item.id, 'rate', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono font-bold text-xs"
+                              onChange={e => handleUpdateItem(idx, 'rate', e.target.value)}
+                              className="w-20 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold text-right text-emerald-700"
                             />
                           </td>
-                          <td className="py-2 px-2">
+                          <td className="py-2 px-3">
                             <select
                               value={item.gst_rate}
-                              onChange={e => handleUpdateItem(item.id, 'gst_rate', Number(e.target.value))}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-mono text-center"
+                              onChange={e => handleUpdateItem(idx, 'gst_rate', e.target.value)}
+                              className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold"
                             >
+                              <option value="0">0%</option>
                               <option value="5">5%</option>
                               <option value="12">12%</option>
                               <option value="18">18%</option>
-                              <option value="0">0%</option>
                             </select>
                           </td>
-                          <td className="py-2 px-3 text-right font-mono font-bold text-purple-950">
-                            ₹{(Number(item.amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          <td className="py-2 px-3 text-right font-black text-slate-900 font-mono">
+                            ₹{item.amount.toLocaleString('en-IN')}
                           </td>
-                          <td className="py-2 px-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          <td className="py-2 px-3 text-center">
+                            {items.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(idx)}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
-
-              {/* 4. TOTALS & TAX ENGINE */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* Notes & Terms */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 text-xs">
-                  <h4 className="font-black text-slate-900 uppercase tracking-wider">
-                    Notes &amp; Custom Instructions
-                  </h4>
-                  <textarea
-                    rows={2}
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                    placeholder="Add special notes for client..."
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
-                  />
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Standard Terms &amp; Conditions (Editable):</label>
-                    <textarea
-                      rows={4}
-                      value={terms.join('\n')}
-                      onChange={e => setTerms(e.target.value.split('\n').filter(Boolean))}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-[11px] font-mono leading-relaxed"
-                    />
-                  </div>
-                </div>
 
                 {/* Calculation Summary Box */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 text-xs">
-                  <h4 className="font-black text-slate-900 uppercase tracking-wider">
-                    Commercials &amp; Tax Calculation
-                  </h4>
-
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between font-semibold text-slate-700">
-                      <span>Subtotal (Gross Item Amount):</span>
-                      <span className="font-mono">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <div className="bg-purple-50/70 p-4 rounded-xl border border-purple-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="text-xs text-purple-900 font-medium">
+                    <p className="font-bold">Amount in Words:</p>
+                    <p className="italic">{inWords(grandTotal)}</p>
+                  </div>
+                  <div className="space-y-1.5 text-xs text-right min-w-[200px]">
+                    <div className="flex justify-between text-slate-600 font-semibold">
+                      <span>Subtotal (Taxable):</span>
+                      <span className="font-mono">₹{subtotal.toLocaleString('en-IN')}</span>
                     </div>
-
-                    {/* Discount */}
-                    <div className="grid grid-cols-3 gap-2 items-center">
-                      <span className="font-semibold text-slate-700">Discount:</span>
-                      <select
-                        value={discountType}
-                        onChange={e => setDiscountType(e.target.value as any)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-semibold"
-                      >
-                        <option value="PERCENTAGE">% Percentage</option>
-                        <option value="FIXED">₹ Flat Amount</option>
-                      </select>
-                      <input
-                        type="number"
-                        min="0"
-                        value={discountValue}
-                        onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono text-right"
-                      />
+                    <div className="flex justify-between text-purple-700 font-semibold">
+                      <span>GST Amount:</span>
+                      <span className="font-mono">+ ₹{totalGst.toLocaleString('en-IN')}</span>
                     </div>
-
-                    {/* Tax Type */}
-                    <div className="grid grid-cols-2 gap-2 items-center">
-                      <span className="font-semibold text-slate-700">GST Tax Option:</span>
-                      <select
-                        value={taxType}
-                        onChange={e => setTaxType(e.target.value as any)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-bold text-purple-900"
-                      >
-                        <option value="CGST_SGST">CGST (2.5%) + SGST (2.5%) = 5%</option>
-                        <option value="IGST">IGST (5% Interstate)</option>
-                        <option value="NONE">No GST (0%)</option>
-                      </select>
-                    </div>
-
-                    {/* Freight */}
-                    <div className="grid grid-cols-2 gap-2 items-center">
-                      <span className="font-semibold text-slate-700">Freight / Shipping (₹):</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={shippingCharges}
-                        onChange={e => setShippingCharges(parseFloat(e.target.value) || 0)}
-                        className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono text-right"
-                      />
-                    </div>
-
-                    {/* GRAND TOTAL ROW */}
-                    <div className="pt-3 border-t-2 border-purple-900/20 flex justify-between items-center bg-purple-50 p-3 rounded-xl">
-                      <div>
-                        <p className="font-black text-purple-950 text-xs">GRAND TOTAL (INR):</p>
-                        <p className="text-[10px] text-purple-700 font-semibold">{grandTotalWords}</p>
-                      </div>
-                      <span className="font-mono text-xl font-black text-purple-950">
-                        ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
+                    <div className="flex justify-between text-sm font-black text-purple-950 pt-1.5 border-t border-purple-200">
+                      <span>Grand Total:</span>
+                      <span className="font-mono text-base text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>
+              </div>
 
+              {/* Terms & Notes Card */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Remarks &amp; Notes
+                </h3>
+                <textarea
+                  rows={2}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500"
+                />
               </div>
 
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl flex items-center shadow-sm"
-                >
-                  <Printer className="w-3.5 h-3.5 mr-1.5" /> Print / Save as PDF
-                </button>
-              </div>
+          )}
+
+          {/* ================= VIEW 2: BRANDED PRINTABLE PDF TEMPLATE ================= */}
+          {activeView === 'PREVIEW' && (
+            <div id="quotation-print-area" className="bg-white p-8 rounded-2xl border border-slate-300 shadow-md text-slate-900 space-y-6 max-w-3xl mx-auto print:border-none print:shadow-none print:p-0">
               
-              {/* PRINTABLE TEMPLATE RENDER */}
-              <QuotationTemplate quotation={currentQuotation} />
+              {/* Template Top Header */}
+              <div className="flex justify-between items-start border-b-2 border-[#250a42] pb-5">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-lg bg-[#250a42] text-white font-black flex items-center justify-center text-base">
+                      F
+                    </div>
+                    <h1 className="text-xl font-black text-[#250a42] tracking-tight">FabricTraders</h1>
+                  </div>
+                  <p className="text-xs font-bold text-slate-600 mt-1">Textile Mills &amp; Premium Fabric Wholesaler</p>
+                  <p className="text-[11px] text-slate-500">Ring Road Textile Market, Surat, Gujarat - 395002</p>
+                  <p className="text-[11px] text-slate-500 font-mono">GSTIN: 24AABCF1234F1Z9 | Phone: +91 98765 43210</p>
+                </div>
+                <div className="text-right space-y-1">
+                  <span className="bg-[#250a42] text-white text-xs font-black px-3 py-1 rounded-md uppercase tracking-wider">
+                    PRICE QUOTATION
+                  </span>
+                  <p className="text-xs font-bold font-mono text-[#250a42] pt-2">{quoteNumber}</p>
+                  <p className="text-[11px] text-slate-600">Date: <strong>{quotationDate}</strong></p>
+                  <p className="text-[11px] text-slate-600">Valid Until: <strong>{validUntil}</strong></p>
+                </div>
+              </div>
+
+              {/* Bill To Customer Card */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">QUOTATION PREPARED FOR:</p>
+                  <p className="font-extrabold text-sm text-slate-900 mt-1">{customerName}</p>
+                  {companyName && <p className="font-bold text-purple-900">{companyName}</p>}
+                  <p className="text-slate-600 font-mono mt-0.5">{mobileNumber}</p>
+                  <p className="text-slate-600">{city}, India</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">REPRESENTATIVE / CALLER:</p>
+                  <p className="font-bold text-slate-900 mt-1">{currentUser?.full_name || 'Rajesh Sharma'}</p>
+                  <p className="text-slate-600">{currentUser?.email || 'sales@fabrictraders.com'}</p>
+                  <p className="text-[11px] text-emerald-700 font-bold mt-1">Verified Supplier Direct Rate</p>
+                </div>
+              </div>
+
+              {/* Items Table in PDF */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs border border-slate-200">
+                  <thead>
+                    <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase">
+                      <th className="py-2.5 px-3 border border-purple-900">#</th>
+                      <th className="py-2.5 px-3 border border-purple-900">Item Description</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-center">HSN</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-center">Quantity</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-right">Rate (₹)</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-center">GST</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-right">Total (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {items.map((item, idx) => (
+                      <tr key={item.id} className="hover:bg-slate-50">
+                        <td className="py-2.5 px-3 border border-slate-200 font-bold">{idx + 1}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 font-bold text-slate-900">{item.name}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-center font-mono">{item.hsn_code}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-center font-bold">{item.quantity} {item.unit}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-right font-mono">₹{Number(item.rate).toFixed(2)}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-center">{item.gst_rate}%</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-right font-black font-mono">₹{item.amount.toLocaleString('en-IN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals Breakdown */}
+              <div className="flex justify-between items-start pt-2">
+                <div className="max-w-md text-xs space-y-1">
+                  <p className="font-bold text-slate-800">Amount In Words:</p>
+                  <p className="text-slate-600 italic bg-slate-50 p-2 rounded border border-slate-200">
+                    {inWords(grandTotal)}
+                  </p>
+                </div>
+                <div className="w-64 space-y-1 text-xs text-right">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Taxable Subtotal:</span>
+                    <span className="font-mono font-bold">₹{subtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>GST Tax ({taxType === 'CGST_SGST' ? 'CGST+SGST' : 'IGST'}):</span>
+                    <span className="font-mono font-bold">+ ₹{totalGst.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-black text-[#250a42] pt-2 border-t-2 border-[#250a42]">
+                    <span>Grand Total:</span>
+                    <span className="font-mono text-base text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms & Conditions Box */}
+              <div className="pt-4 border-t border-slate-200 text-[11px] text-slate-600 space-y-1">
+                <p className="font-bold text-slate-800 uppercase">Standard Terms &amp; Conditions:</p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {terms.map((t, idx) => (
+                    <li key={idx}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Signatory Footer */}
+              <div className="pt-6 flex justify-between items-end text-xs text-slate-600">
+                <div>
+                  <p className="font-bold text-slate-800">Bank Details for RTGS / NEFT:</p>
+                  <p className="font-mono text-[11px]">A/C: FabricTraders Textiles | HDFC Bank</p>
+                  <p className="font-mono text-[11px]">A/C No: 50200012345678 | IFSC: HDFC0001234</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-36 h-12 border-b border-slate-400 mb-1"></div>
+                  <p className="font-bold text-slate-900">For FabricTraders</p>
+                  <p className="text-[10px] text-slate-500">Authorized Signatory</p>
+                </div>
+              </div>
+
             </div>
           )}
 
         </div>
 
-        {/* MODAL FOOTER ACTIONS */}
-        <div className="bg-white px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-slate-600">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Whatsify WhatsApp Gateway Active</span>
-          </div>
+        {/* Modal Action Footer Bar */}
+        <div className="bg-slate-100 px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
+          
+          {/* WhatsApp Direct Fallback Link */}
+          <button
+            type="button"
+            onClick={handleOpenWhatsAppWeb}
+            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center space-x-1"
+          >
+            <MessageCircle className="w-4 h-4 text-emerald-600" />
+            <span>Open in WhatsApp Web &rarr;</span>
+          </button>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={handlePrint}
-              className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center shadow-sm transition"
+              className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center shadow-sm transition"
             >
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Download PDF
+              <Printer className="w-4 h-4 mr-1.5 text-slate-600" /> Print / Save PDF
             </button>
 
             <button
               type="button"
-              onClick={handleOpenWhatsAppWeb}
-              className="bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center shadow-sm transition"
-            >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Open WhatsApp Web
-            </button>
-
-            <button
-              type="button"
+              disabled={isSendingWhatsApp}
               onClick={handleSendWhatsify}
-              disabled={isSendingWhatsApp || isSaving}
-              className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-black px-5 py-2.5 rounded-xl flex items-center shadow-lg shadow-emerald-700/30 transition transform active:scale-95 disabled:opacity-50"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl flex items-center shadow-md transition transform active:scale-95 disabled:opacity-50"
             >
               {isSendingWhatsApp ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  SENDING VIA WHATSIFY...
+                  Sending via WhatsApp...
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  SEND ON WHATSAPP (WHATSIFY API)
+                  Send Quotation on WhatsApp
                 </>
               )}
             </button>

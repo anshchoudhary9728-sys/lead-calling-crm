@@ -3,22 +3,25 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, User, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { Lock, User, ArrowRight, ShieldCheck, Loader2, Sparkles, Key } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const { setCurrentUser } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('rajesh.admin');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e?: React.FormEvent, customUser?: string, customPass?: string) => {
+    if (e) e.preventDefault();
     setError('');
 
-    if (!username.trim() || !password.trim()) {
-      setError('Please enter both username/email and password.');
+    const targetUser = customUser || username;
+    const targetPass = customPass || password;
+
+    if (!targetUser.trim()) {
+      setError('Please enter username/email.');
       return;
     }
 
@@ -29,8 +32,8 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: username.trim(),
-          password: password.trim(),
+          username: targetUser.trim(),
+          password: targetPass.trim() || 'admin123',
         }),
       });
 
@@ -50,17 +53,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleQuickLogin = (uname: string, pwd = 'admin123') => {
+    setUsername(uname);
+    setPassword(pwd);
+    handleLogin(undefined, uname, pwd);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-6 border border-slate-200">
+    <div className="min-h-screen bg-gradient-to-br from-[#120324] via-[#1e0a38] to-[#0d021a] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-6 border border-purple-900/30">
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-sky-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-md">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-800 via-indigo-700 to-pink-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-lg shadow-purple-900/50">
             F
           </div>
-          <h1 className="text-xl font-extrabold text-slate-900">FabricTraders CRM</h1>
-          <p className="text-xs text-slate-500">Lead Calling &amp; Automatic Follow-up Management System</p>
+          <div className="flex items-center justify-center space-x-1.5 pt-1">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">FabricTraders CRM</h1>
+            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+          </div>
+          <p className="text-xs text-slate-500">Lead Calling, Quotations &amp; WhatsApp CRM</p>
         </div>
 
         {error && (
@@ -69,7 +81,38 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4 text-xs">
+        {/* Quick Demo Login Badges */}
+        <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200/80 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-wider text-purple-950 flex items-center">
+            <Key className="w-3 h-3 mr-1 text-purple-700" /> 1-Click Quick Login Accounts:
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('rajesh.admin')}
+              className="p-2 rounded-xl bg-purple-900 hover:bg-purple-950 text-white text-[11px] font-bold shadow-sm transition text-left"
+            >
+              <div className="font-extrabold flex items-center">
+                👑 Super Admin
+              </div>
+              <div className="text-[9.5px] text-purple-200">rajesh.admin</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('rahul.verma')}
+              className="p-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-[11px] font-bold shadow-sm transition text-left"
+            >
+              <div className="font-extrabold">
+                📞 Sales Executive
+              </div>
+              <div className="text-[9.5px] text-indigo-200">rahul.verma</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Standard Login Form */}
+        <form onSubmit={e => handleLogin(e)} className="space-y-4 text-xs">
           <div>
             <label className="block font-bold text-slate-700 mb-1">Username / Email</label>
             <div className="relative">
@@ -77,10 +120,10 @@ export default function LoginPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. rajesh.admin or rahul.caller"
+                placeholder="rajesh.admin or rahul.verma"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 font-semibold"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-semibold text-slate-900"
               />
             </div>
           </div>
@@ -92,10 +135,10 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
-                placeholder="Enter your password"
+                placeholder="Enter password (default: admin123)"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 font-semibold"
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-semibold text-slate-900"
               />
             </div>
           </div>
@@ -103,7 +146,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider disabled:opacity-50"
+            className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -119,7 +162,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="pt-4 border-t border-slate-100 text-center text-[11px] text-slate-400">
+        <div className="pt-2 border-t border-slate-100 text-center text-[11px] text-slate-400">
           <p className="flex items-center justify-center">
             <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
             Protected by Supabase RBAC &amp; Session Auth

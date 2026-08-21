@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-const DEFAULT_WHATSIFY_SECRET =
-  process.env.WHATSIFY_SECRET || '279ba9e2-02c5-47a6-8842-4585c39e36f7';
-const DEFAULT_WHATSIFY_ACCOUNT =
-  process.env.WHATSIFY_ACCOUNT || '17784736507786f221ce0a5c074f88876a94ba69a1c32c8c44';
-const DEFAULT_WHATSIFY_URL =
-  process.env.WHATSIFY_URL || 'https://api.whatsify.me/api/send/whatsapp';
+const WHATSIFY_SECRET = process.env.WHATSIFY_SECRET || '279ba9e2-02c5-47a6-8842-4585c39e36f7';
+const WHATSIFY_ACCOUNT = process.env.WHATSIFY_ACCOUNT || '17784736507786f221ce0a5c074f88876a94ba69a1c32c8c44';
+const WHATSIFY_URL = process.env.WHATSIFY_URL || 'https://api.whatsify.me/api/send/whatsapp';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      recipient,
-      message,
-      lead_id,
-      quotation_id,
-      secret = DEFAULT_WHATSIFY_SECRET,
-      account = DEFAULT_WHATSIFY_ACCOUNT,
-      type = 'text',
-      priority = 1,
-    } = body;
+    const { recipient, message, type = 'text', priority = 1, document_url, filename } = body;
 
     if (!recipient || !message) {
       return NextResponse.json(
@@ -31,80 +19,67 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Clean phone number: remove non-digits
+    // Clean and normalize phone number
     const cleanDigits = String(recipient).replace(/\D/g, '');
-    let formattedRecipient = '';
-    if (cleanDigits.length === 10) {
-      formattedRecipient = `+91${cleanDigits}`;
-    } else if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) {
-      formattedRecipient = `+${cleanDigits}`;
-    } else {
-      formattedRecipient = cleanDigits.startsWith('+') ? cleanDigits : `+${cleanDigits}`;
+    const formattedPhone = cleanDigits.length === 10
+      ? `+91${cleanDigits}`
+      : cleanDigits.startsWith('91') && cleanDigits.length === 12
+      ? `+${cleanDigits}`
+      : `+${cleanDigits}`;
+
+    // Prepare multipart form data payload for Whatsify API
+    const formData = new FormData();
+    formData.append('secret', WHATSIFY_SECRET);
+    formData.append('account', WHATSIFY_ACCOUNT);
+    formData.append('recipient', formattedPhone);
+    formData.append('type', type);
+    formData.append('message', message);
+    formData.append('priority', String(priority || 1));
+
+    if (document_url) {
+      formData.append('document_url', document_url);
+    }
+    if (filename) {
+      formData.append('filename', filename);
     }
 
-    // Build payload using standard FormData
-    const formData = new FormData();
-    formData.append('secret', String(secret).trim());
-    formData.append('account', String(account).trim());
-    formData.append('recipient', formattedRecipient);
-    formData.append('message', message);
-    formData.append('type', String(type));
-    formData.append('priority', String(priority));
-
-    // Send request to Whatsify API
-    const response = await fetch(DEFAULT_WHATSIFY_URL, {
+    // Call Whatsify API
+    const whatsifyRes = await fetch(WHATSIFY_URL, {
       method: 'POST',
       body: formData,
     });
 
-    const responseText = await response.text();
+    const responseText = await whatsifyRes.text();
     let responseData: any = {};
     try {
       responseData = JSON.parse(responseText);
     } catch {
-      responseData = { rawResponse: responseText };
+      responseData = { raw: responseText };
     }
 
-    const isSuccess = response.ok || (responseData && (responseData.status === 200 || responseData.success === true || !responseData.error));
-
-    // Log to Supabase integration_logs if available
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('integration_logs').insert([
-          {
-            source: 'OTHER',
-            payload: {
-              type: 'WHATSAPP_QUOTATION',
-              recipient: formattedRecipient,
-              lead_id,
-              quotation_id,
-              status: isSuccess ? 'SUCCESS' : 'FAILED',
-              api_response: responseData,
-            },
-            status: isSuccess ? 'SUCCESS' : 'FAILED',
-            error_message: isSuccess ? null : String(responseText),
-          },
-        ]);
-      } catch (logErr) {
-        console.error('Failed to log WhatsApp send to Supabase:', logErr);
-      }
+    if (!whatsifyRes.ok && !responseData.status && !responseData.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: responseData.message || responseData.error || 'Failed to send WhatsApp message via Whatsify',
+          details: responseData,
+        },
+        { status: whatsifyRes.status || 500 }
+      );
     }
 
     return NextResponse.json({
-      success: isSuccess,
-      message: isSuccess
-        ? `Quotation sent successfully to ${formattedRecipient} via WhatsApp`
-        : `Whatsify API returned an error: ${responseText}`,
-      recipient: formattedRecipient,
+      success: true,
+      message: `WhatsApp message sent successfully to ${formattedPhone}`,
+      recipient: formattedPhone,
       whatsify_response: responseData,
+      sent_at: new Date().toISOString(),
     });
+
   } catch (err: any) {
-    console.error('WhatsApp send exception:', err);
+    console.error('Whatsify WhatsApp send error:', err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err.message || 'Failed to send WhatsApp message through Whatsify API.',
-      },
+      { success: false, error: err.message || 'Internal server error while sending WhatsApp message' },
       { status: 500 }
     );
   }
