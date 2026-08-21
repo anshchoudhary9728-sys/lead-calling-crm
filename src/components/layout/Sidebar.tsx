@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   PhoneOff,
   Sparkles,
+  FileText,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -88,6 +89,12 @@ export default function Sidebar() {
       href: '/leads',
       icon: Users,
       iconBg: 'bg-pink-600',
+    },
+    {
+      name: 'Quotations / कोटेशन',
+      href: '/quotations',
+      icon: FileText,
+      iconBg: 'bg-amber-600',
     },
     {
       name: 'My Assigned Leads',

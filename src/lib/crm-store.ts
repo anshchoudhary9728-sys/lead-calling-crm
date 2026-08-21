@@ -12,6 +12,7 @@ import {
   DashboardSummaryKPI,
   LeadStatus,
   LeadSource,
+  Quotation,
 } from '@/types/crm';
 import { calculateInitialPlannedCall, calculateNextPlannedCall, sortLeadsByPlannedPriority } from './call-planning';
 import { addMinutesToDate, addHoursToDate } from './timezone';
@@ -105,6 +106,7 @@ class CRMStore {
   private integrationLogs: IntegrationLog[] = [];
   private activityLogs: ActivityLog[] = [];
   private planChangeHistory: PlanChangeHistory[] = [];
+  private quotations: Quotation[] = [];
 
   private roundRobinUserIndex = 0;
 
@@ -119,11 +121,13 @@ class CRMStore {
         const storedCalls = localStorage.getItem('crm_call_logs');
         const storedFollowups = localStorage.getItem('crm_followups');
         const storedConfig = localStorage.getItem('crm_config');
+        const storedQuotations = localStorage.getItem('crm_quotations');
 
         if (storedLeads) this.leads = JSON.parse(storedLeads);
         if (storedCalls) this.callLogs = JSON.parse(storedCalls);
         if (storedFollowups) this.followups = JSON.parse(storedFollowups);
         if (storedConfig) this.config = JSON.parse(storedConfig);
+        if (storedQuotations) this.quotations = JSON.parse(storedQuotations);
       } catch (err) {
         console.error('Failed to load CRM state from localStorage', err);
       }
@@ -137,6 +141,7 @@ class CRMStore {
         localStorage.setItem('crm_call_logs', JSON.stringify(this.callLogs));
         localStorage.setItem('crm_followups', JSON.stringify(this.followups));
         localStorage.setItem('crm_config', JSON.stringify(this.config));
+        localStorage.setItem('crm_quotations', JSON.stringify(this.quotations));
       } catch (err) {
         console.error('Failed to persist CRM state', err);
       }
@@ -564,7 +569,31 @@ class CRMStore {
       total_revenue,
     };
   }
+
+  // --- QUOTATIONS ---
+  getQuotations(leadId?: string): Quotation[] {
+    if (leadId) {
+      return this.quotations.filter(q => q.lead_id === leadId || q.lead_unique_id === leadId);
+    }
+    return [...this.quotations].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  getQuotationById(id: string): Quotation | undefined {
+    return this.quotations.find(q => q.id === id || q.quotation_number === id);
+  }
+
+  saveQuotation(quotation: Quotation): Quotation {
+    const existingIndex = this.quotations.findIndex(q => q.id === quotation.id || q.quotation_number === quotation.quotation_number);
+    if (existingIndex >= 0) {
+      this.quotations[existingIndex] = { ...quotation, updated_at: new Date().toISOString() };
+    } else {
+      this.quotations.unshift(quotation);
+    }
+    this.saveToLocalStorage();
+    return quotation;
+  }
 }
 
 // Singleton Store Instance
 export const crmStore = new CRMStore();
+

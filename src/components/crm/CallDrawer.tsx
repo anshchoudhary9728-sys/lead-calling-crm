@@ -18,7 +18,9 @@ import {
   Send,
   MessageSquare,
   Loader2,
+  FileText,
 } from 'lucide-react';
+import QuotationModal from './QuotationModal';
 
 interface CallDrawerProps {
   lead: Lead | null;
@@ -37,6 +39,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showAllRemarks, setShowAllRemarks] = useState(true);
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
 
   if (!lead) return null;
 
@@ -161,19 +164,31 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
             </p>
           </div>
 
-          {/* CALL NOW BUTTON */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
-            <div>
-              <p className="text-xs font-bold text-slate-800">Make Customer Phone Call</p>
-              <p className="text-[11px] text-slate-500">Clicking Call triggers phone dialer and starts call timer.</p>
+          {/* CALL NOW & SEND QUOTATION ACTION BUTTONS */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-slate-800">Direct Actions for this Lead</p>
+                <p className="text-[11px] text-slate-500">Call client phone or create &amp; send instant fabric quotation via WhatsApp.</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowQuotationModal(true)}
+                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3.5 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
+                >
+                  <FileText className="w-4 h-4 mr-1.5" />
+                  SEND QUOTATION (कोटेशन)
+                </button>
+                <a
+                  href={`tel:${lead.mobile_number}`}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
+                >
+                  <PhoneCall className="w-4 h-4 mr-1.5 animate-bounce" />
+                  CALL NOW ({lead.mobile_number})
+                </a>
+              </div>
             </div>
-            <a
-              href={`tel:${lead.mobile_number}`}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
-            >
-              <PhoneCall className="w-4 h-4 mr-2 animate-bounce" />
-              CALL NOW ({lead.mobile_number})
-            </a>
           </div>
 
           {/* LAST CONVERSATION BOX */}
@@ -405,6 +420,18 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
 
         </div>
       </div>
+
+      {/* Quotation Modal */}
+      {showQuotationModal && (
+        <QuotationModal
+          lead={lead}
+          onClose={() => setShowQuotationModal(false)}
+          onSuccess={() => {
+            setShowQuotationModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
+

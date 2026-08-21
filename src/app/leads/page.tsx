@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import CallDrawer from '@/components/crm/CallDrawer';
+import QuotationModal from '@/components/crm/QuotationModal';
 import { Lead, LeadFilterState, LeadSource, User } from '@/types/crm';
 import { formatIST } from '@/lib/timezone';
 import { useAuth } from '@/context/AuthContext';
@@ -16,12 +17,14 @@ import {
   UserPlus,
   Loader2,
   Filter,
+  FileText,
 } from 'lucide-react';
 
 export default function LeadsMasterPage() {
   const { currentUser } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedLeadForCall, setSelectedLeadForCall] = useState<Lead | null>(null);
+  const [selectedLeadForQuote, setSelectedLeadForQuote] = useState<Lead | null>(null);
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,12 +293,20 @@ export default function LeadsMasterPage() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => setSelectedLeadForCall(lead)}
-                        className="bg-purple-700 hover:bg-purple-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center mx-auto shadow-sm transition"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5 mr-1" /> Call / Log
-                      </button>
+                      <div className="flex items-center justify-center space-x-1.5">
+                        <button
+                          onClick={() => setSelectedLeadForCall(lead)}
+                          className="bg-purple-700 hover:bg-purple-800 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center shadow-sm transition"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5 mr-1" /> Call
+                        </button>
+                        <button
+                          onClick={() => setSelectedLeadForQuote(lead)}
+                          className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center shadow-sm transition"
+                        >
+                          <FileText className="w-3.5 h-3.5 mr-1" /> Quote
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -466,6 +477,19 @@ export default function LeadsMasterPage() {
           }}
         />
       )}
+
+      {/* Quotation Modal */}
+      {selectedLeadForQuote && (
+        <QuotationModal
+          lead={selectedLeadForQuote}
+          onClose={() => setSelectedLeadForQuote(null)}
+          onSuccess={() => {
+            setSelectedLeadForQuote(null);
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }
+

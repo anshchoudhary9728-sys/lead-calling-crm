@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import CallDrawer from '@/components/crm/CallDrawer';
+import QuotationModal from '@/components/crm/QuotationModal';
 import { crmStore } from '@/lib/crm-store';
 import { formatIST } from '@/lib/timezone';
 import {
@@ -27,6 +28,7 @@ export default function LeadProfileDetailPage() {
   const id = params?.id as string;
   const lead = crmStore.getLeadById(id);
   const [selectedForCall, setSelectedForCall] = useState(false);
+  const [selectedForQuote, setSelectedForQuote] = useState(false);
 
   if (!lead) {
     return (
@@ -45,17 +47,25 @@ export default function LeadProfileDetailPage() {
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       
-      {/* Back Link */}
-      <div className="flex items-center justify-between">
+      {/* Back Link & Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href="/leads" className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Leads Directory
         </Link>
-        <button
-          onClick={() => setSelectedForCall(true)}
-          className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center shadow-sm"
-        >
-          <PhoneCall className="w-3.5 h-3.5 mr-1.5" /> MAKE CALL / UPDATE DISPOSITION
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setSelectedForQuote(true)}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center shadow-sm transition"
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" /> CREATE &amp; SEND QUOTATION
+          </button>
+          <button
+            onClick={() => setSelectedForCall(true)}
+            className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center shadow-sm transition"
+          >
+            <PhoneCall className="w-3.5 h-3.5 mr-1.5" /> MAKE CALL / UPDATE DISPOSITION
+          </button>
+        </div>
       </div>
 
       {/* LEAD HEADER CARD */}
@@ -160,6 +170,16 @@ export default function LeadProfileDetailPage() {
           onSuccess={() => setSelectedForCall(false)}
         />
       )}
+
+      {/* Quotation Modal */}
+      {selectedForQuote && (
+        <QuotationModal
+          lead={lead}
+          onClose={() => setSelectedForQuote(false)}
+          onSuccess={() => setSelectedForQuote(false)}
+        />
+      )}
     </div>
   );
 }
+

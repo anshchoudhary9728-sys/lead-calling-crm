@@ -187,3 +187,6 @@ export interface DashboardSummaryKPI {
   total_converted: number;
   total_revenue: number;
 }
+
+export * from './quotation';
+

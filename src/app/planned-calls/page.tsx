@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import CallDrawer from '@/components/crm/CallDrawer';
+import QuotationModal from '@/components/crm/QuotationModal';
 import { Lead, LeadFilterState, LeadSource, User } from '@/types/crm';
 import { formatIST, calculateTimeDelay } from '@/lib/timezone';
 import { useAuth } from '@/context/AuthContext';
@@ -13,6 +14,7 @@ import {
   UserPlus,
   X,
   Loader2,
+  FileText,
 } from 'lucide-react';
 
 export default function PlannedCallsDashboard() {
@@ -20,6 +22,7 @@ export default function PlannedCallsDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedLeadForCall, setSelectedLeadForCall] = useState<Lead | null>(null);
+  const [selectedLeadForQuote, setSelectedLeadForQuote] = useState<Lead | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Manual Lead Modal State
@@ -371,13 +374,22 @@ export default function PlannedCallsDashboard() {
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                            <button
-                              onClick={() => setSelectedLeadForCall(lead)}
-                              className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center justify-center shadow-sm transition mx-auto"
-                            >
-                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                              CALL / LOG
-                            </button>
+                            <div className="flex items-center justify-center space-x-1.5">
+                              <button
+                                onClick={() => setSelectedLeadForCall(lead)}
+                                className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center justify-center shadow-sm transition"
+                              >
+                                <PhoneCall className="w-3.5 h-3.5 mr-1" />
+                                CALL
+                              </button>
+                              <button
+                                onClick={() => setSelectedLeadForQuote(lead)}
+                                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center justify-center shadow-sm transition"
+                              >
+                                <FileText className="w-3.5 h-3.5 mr-1" />
+                                QUOTE
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -551,6 +563,19 @@ export default function PlannedCallsDashboard() {
           }}
         />
       )}
+
+      {/* Quotation Modal */}
+      {selectedLeadForQuote && (
+        <QuotationModal
+          lead={selectedLeadForQuote}
+          onClose={() => setSelectedLeadForQuote(null)}
+          onSuccess={() => {
+            loadLeads();
+            setSelectedLeadForQuote(null);
+          }}
+        />
+      )}
     </div>
   );
 }
+
