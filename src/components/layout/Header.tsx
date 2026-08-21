@@ -24,6 +24,11 @@ export default function Header() {
           <Clock className="w-3.5 h-3.5 text-sky-400 mr-1.5" />
           <span>TZ: <strong className="text-white">Asia/Kolkata (IST)</strong></span>
         </div>
+
+        <div className="hidden lg:flex items-center text-xs text-emerald-300 bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-700/50 font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          <span>Quotation &amp; WhatsApp Live</span>
+        </div>
       </div>
 
       {/* Right Controls: User Profile & Actions */}
