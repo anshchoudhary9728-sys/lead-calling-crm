@@ -15,7 +15,10 @@ import {
   X,
   Loader2,
   FileText,
+  MapPin,
+  Sparkles,
 } from 'lucide-react';
+import FabricRequirementInput from '@/components/crm/FabricRequirementInput';
 
 export default function PlannedCallsDashboard() {
   const { currentUser } = useAuth();
@@ -315,6 +318,7 @@ export default function PlannedCallsDashboard() {
                     <th className="py-3.5 px-4 whitespace-nowrap">Time Delay</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Client Name</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Contact Number</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Location</th>
                     <th className="py-3.5 px-4">Requirement</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Source</th>
                     <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
@@ -324,7 +328,7 @@ export default function PlannedCallsDashboard() {
                 <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                   {leads.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-slate-400 italic">
+                      <td colSpan={10} className="py-12 text-center text-slate-400 italic">
                         No pending new inquiries! All calls have been handled and transferred.
                       </td>
                     </tr>
@@ -359,6 +363,12 @@ export default function PlannedCallsDashboard() {
                             <a href={`tel:${lead.mobile_number}`} className="text-purple-700 hover:underline">
                               {lead.mobile_number}
                             </a>
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="flex items-center text-slate-700 font-semibold">
+                              <MapPin className="w-3.5 h-3.5 mr-1 text-purple-600 shrink-0" />
+                              {lead.city || 'Surat'}
+                            </span>
                           </td>
                           <td className="py-3.5 px-4 max-w-[200px] truncate text-slate-600">
                             {lead.client_requirement || lead.enquiry_message || '—'}
@@ -460,18 +470,18 @@ export default function PlannedCallsDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Alternate Phone (Optional)</label>
+                  <label className="block font-bold text-slate-700 mb-1">City / Location</label>
                   <input
                     type="text"
-                    placeholder="e.g. 9811002233"
-                    value={newLeadForm.alternate_number}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, alternate_number: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 font-mono"
+                    placeholder="e.g. Surat, Delhi, Mumbai"
+                    value={newLeadForm.city}
+                    onChange={e => setNewLeadForm({ ...newLeadForm, city: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
                   <select
@@ -495,26 +505,20 @@ export default function PlannedCallsDashboard() {
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">City / Location</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Surat, Delhi"
-                    value={newLeadForm.city}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, city: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Product Requirement / Enquiry Details</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Inquiring for 500m Cotton Fabric for promotional bags..."
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Product Requirement / Enquiry Details *</span>
+                  <span className="text-[10px] text-purple-700 font-semibold flex items-center">
+                    <Sparkles className="w-3 h-3 mr-1" /> Type 1 letter for Fabric Auto-Suggestions
+                  </span>
+                </label>
+                <FabricRequirementInput
                   value={newLeadForm.client_requirement}
-                  onChange={e => setNewLeadForm({ ...newLeadForm, client_requirement: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
+                  onChange={val => setNewLeadForm({ ...newLeadForm, client_requirement: val })}
+                  placeholder="Type 1 word (e.g. Cotton, Denim, Cambric, Linen, Rayon, Silk, Crepe...)"
+                  rows={2}
                 />
               </div>
 

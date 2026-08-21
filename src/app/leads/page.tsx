@@ -18,7 +18,10 @@ import {
   Loader2,
   Filter,
   FileText,
+  MapPin,
+  Sparkles,
 } from 'lucide-react';
+import FabricRequirementInput from '@/components/crm/FabricRequirementInput';
 
 export default function LeadsMasterPage() {
   const { currentUser } = useAuth();
@@ -243,6 +246,7 @@ export default function LeadsMasterPage() {
                 <th className="py-3.5 px-4">Received Date</th>
                 <th className="py-3.5 px-4">Client Name</th>
                 <th className="py-3.5 px-4">Contact Number</th>
+                <th className="py-3.5 px-4">Location</th>
                 <th className="py-3.5 px-4">Source</th>
                 <th className="py-3.5 px-4">Requirement</th>
                 <th className="py-3.5 px-4">Assigned To</th>
@@ -253,7 +257,7 @@ export default function LeadsMasterPage() {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {leads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400 italic">
+                  <td colSpan={10} className="py-10 text-center text-slate-400 italic">
                     {loading ? 'Loading leads from database...' : 'No leads found.'}
                   </td>
                 </tr>
@@ -266,6 +270,12 @@ export default function LeadsMasterPage() {
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{lead.customer_name}</td>
                     <td className="py-3.5 px-4 font-mono font-semibold text-slate-800">{lead.mobile_number}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="flex items-center text-slate-700 font-semibold">
+                        <MapPin className="w-3.5 h-3.5 mr-1 text-purple-600 shrink-0" />
+                        {lead.city || 'Surat'}
+                      </span>
+                    </td>
                     <td className="py-3.5 px-4">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
                         {lead.source}
@@ -374,18 +384,18 @@ export default function LeadsMasterPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Alternate Phone (Optional)</label>
+                  <label className="block font-bold text-slate-700 mb-1">City / Location</label>
                   <input
                     type="text"
-                    placeholder="e.g. 9811002233"
-                    value={newLeadForm.alternate_number}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, alternate_number: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500 font-mono"
+                    placeholder="e.g. Surat, Delhi, Mumbai"
+                    value={newLeadForm.city}
+                    onChange={e => setNewLeadForm({ ...newLeadForm, city: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
                   <select
@@ -409,26 +419,20 @@ export default function LeadsMasterPage() {
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">City / Location</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Surat, Delhi"
-                    value={newLeadForm.city}
-                    onChange={e => setNewLeadForm({ ...newLeadForm, city: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Product Requirement / Enquiry Details</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Inquiring for 500m Cotton Fabric for promotional bags..."
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Product Requirement / Enquiry Details *</span>
+                  <span className="text-[10px] text-purple-700 font-semibold flex items-center">
+                    <Sparkles className="w-3 h-3 mr-1" /> Type 1 letter for Fabric Auto-Suggestions
+                  </span>
+                </label>
+                <FabricRequirementInput
                   value={newLeadForm.client_requirement}
-                  onChange={e => setNewLeadForm({ ...newLeadForm, client_requirement: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
+                  onChange={val => setNewLeadForm({ ...newLeadForm, client_requirement: val })}
+                  placeholder="Type 1 word (e.g. Cotton, Denim, Cambric, Linen, Rayon, Silk, Crepe...)"
+                  rows={2}
                 />
               </div>
 

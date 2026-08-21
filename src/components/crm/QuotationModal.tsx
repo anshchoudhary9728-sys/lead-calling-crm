@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { Lead, Quotation } from '@/types/crm';
+import { FABRIC_SUGGESTIONS } from '@/constants/fabrics';
 
 interface QuotationModalProps {
   lead?: Lead | null;
@@ -491,11 +492,17 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                             <input
                               type="text"
                               required
+                              list="fabric-quotation-suggestions"
                               placeholder="e.g. Cotton Cambric 60x60"
                               value={item.name}
                               onChange={e => handleUpdateItem(idx, 'name', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-semibold text-slate-900"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-semibold text-slate-900 focus:ring-2 focus:ring-purple-500"
                             />
+                            <datalist id="fabric-quotation-suggestions">
+                              {FABRIC_SUGGESTIONS.map((fab, fIdx) => (
+                                <option key={fIdx} value={fab} />
+                              ))}
+                            </datalist>
                           </td>
                           <td className="py-2 px-3">
                             <input

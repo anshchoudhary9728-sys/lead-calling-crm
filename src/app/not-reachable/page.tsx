@@ -68,6 +68,7 @@ export default function NotReachablePage() {
                 <th className="py-3.5 px-4">Unique ID</th>
                 <th className="py-3.5 px-4">Customer Name</th>
                 <th className="py-3.5 px-4">Mobile</th>
+                <th className="py-3.5 px-4">Location</th>
                 <th className="py-3.5 px-4">Source</th>
                 <th className="py-3.5 px-4">Requirement</th>
                 <th className="py-3.5 px-4 text-center">Action</th>
@@ -76,7 +77,7 @@ export default function NotReachablePage() {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {leads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 italic">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 italic">
                     No "Not Reachable" leads. These appear when a call is tagged as Not Reachable.
                   </td>
                 </tr>
@@ -94,6 +95,7 @@ export default function NotReachablePage() {
                       <td className="py-3 px-4 font-mono text-sky-700 font-bold">{lead.unique_lead_id}</td>
                       <td className="py-3 px-4 font-semibold">{lead.customer_name}</td>
                       <td className="py-3 px-4 font-mono">{lead.mobile_number}</td>
+                      <td className="py-3 px-4 font-medium text-slate-700">{lead.city || 'Surat'}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
                           {lead.source}

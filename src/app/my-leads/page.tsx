@@ -62,6 +62,7 @@ export default function MyAssignedLeadsPage() {
                 <th className="py-3.5 px-4">Unique ID</th>
                 <th className="py-3.5 px-4">Client Name</th>
                 <th className="py-3.5 px-4">Mobile</th>
+                <th className="py-3.5 px-4">Location</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Source</th>
                 <th className="py-3.5 px-4">Requirement</th>
@@ -71,7 +72,7 @@ export default function MyAssignedLeadsPage() {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {leads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 italic">No assigned leads found.</td>
+                  <td colSpan={8} className="py-12 text-center text-slate-400 italic">No assigned leads found.</td>
                 </tr>
               ) : (
                 leads.map(lead => (
@@ -79,6 +80,7 @@ export default function MyAssignedLeadsPage() {
                     <td className="py-3.5 px-4 font-mono font-bold text-sky-700">{lead.unique_lead_id}</td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{lead.customer_name}</td>
                     <td className="py-3.5 px-4 font-mono">{lead.mobile_number}</td>
+                    <td className="py-3.5 px-4 font-medium text-slate-700">{lead.city || 'Surat'}</td>
                     <td className="py-3.5 px-4">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         lead.current_status === 'NEW'

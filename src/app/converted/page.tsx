@@ -73,6 +73,7 @@ export default function ConvertedDealsPage() {
                 <th className="py-3.5 px-4">Unique ID</th>
                 <th className="py-3.5 px-4">Client Name</th>
                 <th className="py-3.5 px-4">Mobile</th>
+                <th className="py-3.5 px-4">Location</th>
                 <th className="py-3.5 px-4">Requirement</th>
                 <th className="py-3.5 px-4">Source</th>
                 <th className="py-3.5 px-4">Conversion Date</th>
@@ -82,7 +83,7 @@ export default function ConvertedDealsPage() {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
               {convertedLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 italic">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 italic">
                     No converted deals recorded yet. Convert a lead during a call to archive it here.
                   </td>
                 </tr>
@@ -92,6 +93,7 @@ export default function ConvertedDealsPage() {
                     <td className="py-3.5 px-4 font-mono font-bold text-sky-700">{lead.unique_lead_id}</td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{lead.customer_name}</td>
                     <td className="py-3.5 px-4 font-semibold text-slate-800">{lead.mobile_number}</td>
+                    <td className="py-3.5 px-4 font-medium text-slate-700">{lead.city || 'Surat'}</td>
                     <td className="py-3.5 px-4 text-slate-600 max-w-[200px] truncate">{lead.client_requirement || lead.enquiry_message || 'N/A'}</td>
                     <td className="py-3.5 px-4">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
