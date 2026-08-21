@@ -2,24 +2,23 @@
 
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Printer, Download, ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 function QuotationViewContent() {
   const searchParams = useSearchParams();
 
   const quoteNumber = searchParams.get('quote') || 'QT-20260821-3478';
-  const customerName = searchParams.get('name') || 'Valued Customer';
-  const companyName = searchParams.get('company') || '';
-  const mobileNumber = searchParams.get('mobile') || '';
-  const city = searchParams.get('city') || 'Surat';
+  const customerName = searchParams.get('name') || 'Anil';
+  const companyName = searchParams.get('company') || 'Gupta Fabrics';
+  const mobileNumber = searchParams.get('mobile') || '+91 9876543212';
+  const city = searchParams.get('city') || 'Delhi';
   const quotationDate = searchParams.get('date') || new Date().toISOString().substring(0, 10);
   const validUntil = searchParams.get('valid') || new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10);
   const representative = searchParams.get('rep') || 'Pooja Choudhary';
   
-  // Items decoded or fallback
   let items = [
     {
-      name: searchParams.get('item') || '100% Cotton Fabric 60x60 Cambric',
+      name: searchParams.get('item') || 'Need 500m Cotton Fabric',
       hsn: '5208',
       qty: Number(searchParams.get('qty')) || 500,
       unit: searchParams.get('unit') || 'Mtr',
@@ -55,7 +54,7 @@ function QuotationViewContent() {
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white">
       
-      {/* Top Action Bar (Hidden on print/PDF export) */}
+      {/* Top Action Bar */}
       <div className="max-w-3xl mx-auto mb-4 flex items-center justify-between print:hidden">
         <div className="flex items-center space-x-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -69,7 +68,7 @@ function QuotationViewContent() {
         </button>
       </div>
 
-      {/* Printable Quotation Paper */}
+      {/* Printable Quotation Paper with Exact Matching Template */}
       <div id="quotation-print-area" className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl max-w-3xl mx-auto text-slate-900 space-y-6 print:border-none print:shadow-none print:p-0 print:rounded-none">
         
         {/* Template Top Header */}
@@ -108,7 +107,7 @@ function QuotationViewContent() {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">REPRESENTATIVE / CALLER:</p>
             <p className="font-bold text-slate-900 mt-1">{representative}</p>
             <p className="text-slate-600">sales@fabrictraders.com</p>
-            <p className="text-[11px] text-emerald-700 font-bold mt-1">Verified Supplier Direct Mill Rate</p>
+            <p className="text-[11px] text-emerald-700 font-bold mt-1">Verified Supplier Direct Rate</p>
           </div>
         </div>
 
@@ -156,7 +155,7 @@ function QuotationViewContent() {
               <span className="font-mono font-bold">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>GST Tax:</span>
+              <span>GST Tax (CGST+SGST):</span>
               <span className="font-mono font-bold">+ ₹{totalGst.toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-sm font-black text-[#250a42] pt-2 border-t-2 border-[#250a42]">
@@ -173,15 +172,14 @@ function QuotationViewContent() {
             <li>Payment Terms: 30% Advance along with Order Confirmation, balance before dispatch.</li>
             <li>Delivery: Dispatch within 3-5 working days from our Surat warehouse.</li>
             <li>Freight / Transport: Extra at actuals on TO-PAY basis.</li>
-            <li>GST: Rates mentioned are subject to applicable GST taxes.</li>
-            <li>Quotation Validity: Valid for 7 days from the date of issuance.</li>
+            <li>Bank RTGS/NEFT: FabricTraders Textiles | HDFC Bank | A/C: 50200012345678 | IFSC: HDFC0001234</li>
           </ul>
         </div>
 
         {/* Signatory Footer */}
         <div className="pt-6 flex justify-between items-end text-xs text-slate-600">
           <div>
-            <p className="font-bold text-slate-800">Bank Details for RTGS / NEFT:</p>
+            <p className="font-bold text-slate-800">Bank Details for Payment:</p>
             <p className="font-mono text-[11px]">A/C: FabricTraders Textiles | HDFC Bank</p>
             <p className="font-mono text-[11px]">A/C No: 50200012345678 | IFSC: HDFC0001234</p>
           </div>
