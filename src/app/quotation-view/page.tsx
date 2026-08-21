@@ -116,24 +116,20 @@ function QuotationViewContent() {
           <table className="w-full text-left border-collapse text-xs border border-slate-200">
             <thead>
               <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase">
-                <th className="py-2.5 px-3 border border-purple-900">#</th>
-                <th className="py-2.5 px-3 border border-purple-900">Item Description</th>
-                <th className="py-2.5 px-3 border border-purple-900 text-center">HSN</th>
+                <th className="py-2.5 px-3 border border-purple-900 w-12 text-center">#</th>
+                <th className="py-2.5 px-3 border border-purple-900">Item / Fabric Description</th>
                 <th className="py-2.5 px-3 border border-purple-900 text-center">Quantity</th>
-                <th className="py-2.5 px-3 border border-purple-900 text-right">Rate (₹)</th>
-                <th className="py-2.5 px-3 border border-purple-900 text-center">GST</th>
-                <th className="py-2.5 px-3 border border-purple-900 text-right">Total (₹)</th>
+                <th className="py-2.5 px-3 border border-purple-900 text-center">Unit</th>
+                <th className="py-2.5 px-3 border border-purple-900 text-right">Total Amount (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {items.map((item, idx) => (
                 <tr key={idx} className="hover:bg-slate-50">
-                  <td className="py-2.5 px-3 border border-slate-200 font-bold">{idx + 1}</td>
+                  <td className="py-2.5 px-3 border border-slate-200 font-bold text-center">{idx + 1}</td>
                   <td className="py-2.5 px-3 border border-slate-200 font-bold text-slate-900">{item.name}</td>
-                  <td className="py-2.5 px-3 border border-slate-200 text-center font-mono">{item.hsn}</td>
-                  <td className="py-2.5 px-3 border border-slate-200 text-center font-bold">{item.qty} {item.unit}</td>
-                  <td className="py-2.5 px-3 border border-slate-200 text-right font-mono">₹{Number(item.rate).toFixed(2)}</td>
-                  <td className="py-2.5 px-3 border border-slate-200 text-center">{item.gst}%</td>
+                  <td className="py-2.5 px-3 border border-slate-200 text-center font-bold">{item.qty}</td>
+                  <td className="py-2.5 px-3 border border-slate-200 text-center">{item.unit}</td>
                   <td className="py-2.5 px-3 border border-slate-200 text-right font-black font-mono">₹{item.amount.toLocaleString('en-IN')}</td>
                 </tr>
               ))}
@@ -150,17 +146,9 @@ function QuotationViewContent() {
             </p>
           </div>
           <div className="w-64 space-y-1 text-xs text-right">
-            <div className="flex justify-between text-slate-600">
-              <span>Taxable Subtotal:</span>
-              <span className="font-mono font-bold">₹{subtotal.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>GST Tax (CGST+SGST):</span>
-              <span className="font-mono font-bold">+ ₹{totalGst.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between text-sm font-black text-[#250a42] pt-2 border-t-2 border-[#250a42]">
+            <div className="flex justify-between text-base font-black text-[#250a42] p-2.5 bg-purple-50 rounded-xl border border-purple-200">
               <span>Grand Total:</span>
-              <span className="font-mono text-base text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
+              <span className="font-mono text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>

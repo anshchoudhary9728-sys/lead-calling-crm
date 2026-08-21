@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import FabricRequirementInput from '@/components/crm/FabricRequirementInput';
+import { INDIAN_CITIES_SUGGESTIONS } from '@/constants/cities';
 
 export default function LeadsMasterPage() {
   const { currentUser } = useAuth();
@@ -387,11 +388,17 @@ export default function LeadsMasterPage() {
                   <label className="block font-bold text-slate-700 mb-1">City / Location</label>
                   <input
                     type="text"
+                    list="leads-city-suggestions"
                     placeholder="e.g. Surat, Delhi, Mumbai"
                     value={newLeadForm.city}
                     onChange={e => setNewLeadForm({ ...newLeadForm, city: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-purple-500"
                   />
+                  <datalist id="leads-city-suggestions">
+                    {INDIAN_CITIES_SUGGESTIONS.map((city, cIdx) => (
+                      <option key={cIdx} value={city} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
 

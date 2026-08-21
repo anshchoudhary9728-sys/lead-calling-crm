@@ -14,11 +14,9 @@ export async function GET(req: NextRequest) {
     const date = searchParams.get('date') || new Date().toISOString().substring(0, 10);
     const valid = searchParams.get('valid') || new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10);
     const item = searchParams.get('item') || 'Need 500m Cotton Fabric';
-    const qty = searchParams.get('qty') || '500 Mtr';
-    const rate = searchParams.get('rate') || '85.00';
+    const qty = searchParams.get('qty') || '500';
+    const unit = searchParams.get('unit') || 'Mtr';
     const total = searchParams.get('total') || '44,625';
-    const subtotal = searchParams.get('subtotal') || '42,500';
-    const gstTax = searchParams.get('gstTax') || '2,125';
     const rep = searchParams.get('rep') || 'Pooja Choudhary';
 
     // Clean strings to prevent PDF syntax breaks
@@ -31,15 +29,13 @@ export async function GET(req: NextRequest) {
     const safeCity = sanitize(city);
     const safeDate = sanitize(date);
     const safeValid = sanitize(valid);
-    const safeItem = sanitize(item).substring(0, 32);
+    const safeItem = sanitize(item).substring(0, 36);
     const safeQty = sanitize(qty);
-    const safeRate = sanitize(rate);
+    const safeUnit = sanitize(unit);
     const safeTotal = sanitize(total);
-    const safeSubtotal = sanitize(subtotal);
-    const safeGst = sanitize(gstTax);
     const safeRep = sanitize(rep);
 
-    // Exact FabricTraders PDF stream layout with strictly isolated BT...ET blocks
+    // Exact FabricTraders PDF stream layout with simplified 4-column item table (No HSN, No Rate, No GST)
     const textBlocks = [
       // 1. Logo & Header
       `BT /F1 16 Tf 1 1 1 rg 44 774 Td (F) Tj ET`,
@@ -66,46 +62,36 @@ export async function GET(req: NextRequest) {
       `BT /F2 9 Tf 0.3 0.3 0.3 rg 330 655 Td (sales@fabrictraders.com) Tj ET`,
       `BT /F1 9 Tf 0.08 0.50 0.24 rg 330 638 Td (Verified Supplier Direct Rate) Tj ET`,
 
-      // 4. Table Header
+      // 4. Simplified Table Header (No HSN, No Rate, No GST)
       `BT /F1 9 Tf 1 1 1 rg 45 583 Td (#) Tj ET`,
-      `BT /F1 9 Tf 1 1 1 rg 75 583 Td (ITEM DESCRIPTION) Tj ET`,
-      `BT /F1 9 Tf 1 1 1 rg 255 583 Td (HSN) Tj ET`,
-      `BT /F1 9 Tf 1 1 1 rg 310 583 Td (QUANTITY) Tj ET`,
-      `BT /F1 9 Tf 1 1 1 rg 380 583 Td (RATE Rs.) Tj ET`,
-      `BT /F1 9 Tf 1 1 1 rg 440 583 Td (GST) Tj ET`,
-      `BT /F1 9 Tf 1 1 1 rg 490 583 Td (TOTAL Rs.) Tj ET`,
+      `BT /F1 9 Tf 1 1 1 rg 80 583 Td (ITEM / FABRIC DESCRIPTION) Tj ET`,
+      `BT /F1 9 Tf 1 1 1 rg 330 583 Td (QUANTITY) Tj ET`,
+      `BT /F1 9 Tf 1 1 1 rg 410 583 Td (UNIT) Tj ET`,
+      `BT /F1 9 Tf 1 1 1 rg 475 583 Td (TOTAL AMOUNT) Tj ET`,
 
       // 5. Table Row Data
-      `BT /F2 9 Tf 0.1 0.1 0.1 rg 48 556 Td (1) Tj ET`,
-      `BT /F2 9 Tf 0.1 0.1 0.1 rg 75 556 Td (${safeItem}) Tj ET`,
-      `BT /F2 9 Tf 0.1 0.1 0.1 rg 255 556 Td (5208) Tj ET`,
-      `BT /F2 9 Tf 0.1 0.1 0.1 rg 310 556 Td (${safeQty}) Tj ET`,
-      `BT /F2 9 Tf 0.1 0.1 0.1 rg 380 556 Td (Rs. ${safeRate}) Tj ET`,
-      `BT /F2 9 Tf 0.1 0.1 0.1 rg 440 556 Td (5%) Tj ET`,
-      `BT /F1 9.5 Tf 0.1 0.1 0.1 rg 490 556 Td (Rs. ${safeSubtotal}) Tj ET`,
+      `BT /F2 9.5 Tf 0.1 0.1 0.1 rg 48 556 Td (1) Tj ET`,
+      `BT /F2 9.5 Tf 0.1 0.1 0.1 rg 80 556 Td (${safeItem}) Tj ET`,
+      `BT /F2 9.5 Tf 0.1 0.1 0.1 rg 340 556 Td (${safeQty}) Tj ET`,
+      `BT /F2 9.5 Tf 0.1 0.1 0.1 rg 415 556 Td (${safeUnit}) Tj ET`,
+      `BT /F1 10.5 Tf 0.08 0.50 0.24 rg 475 556 Td (Rs. ${safeTotal}) Tj ET`,
 
       // 6. Amount in Words Box
       `BT /F1 9 Tf 0.2 0.2 0.2 rg 45 520 Td (Amount In Words:) Tj ET`,
       `BT /F2 8.5 Tf 0.3 0.3 0.3 rg 48 498 Td (Rupees Forty-Four Thousand Six Hundred Twenty-Five Only) Tj ET`,
 
-      // 7. Totals Breakdown
-      `BT /F2 9 Tf 0.3 0.3 0.3 rg 340 518 Td (Taxable Subtotal:) Tj ET`,
-      `BT /F1 9 Tf 0.1 0.1 0.1 rg 490 518 Td (Rs. ${safeSubtotal}) Tj ET`,
+      // 7. Grand Total
+      `BT /F1 11 Tf 0.15 0.04 0.26 rg 340 500 Td (Grand Total:) Tj ET`,
+      `BT /F1 13 Tf 0.08 0.50 0.24 rg 465 500 Td (Rs. ${safeTotal}) Tj ET`,
 
-      `BT /F2 9 Tf 0.3 0.3 0.3 rg 340 502 Td (GST Tax (CGST+SGST):) Tj ET`,
-      `BT /F1 9 Tf 0.1 0.1 0.1 rg 490 502 Td (+ Rs. ${safeGst}) Tj ET`,
-
-      `BT /F1 11 Tf 0.15 0.04 0.26 rg 340 475 Td (Grand Total:) Tj ET`,
-      `BT /F1 12 Tf 0.08 0.50 0.24 rg 485 475 Td (Rs. ${safeTotal}) Tj ET`,
-
-      // 8. Terms and Conditions (Isolated per line)
+      // 8. Terms and Conditions
       `BT /F1 9.5 Tf 0.2 0.2 0.2 rg 40 435 Td (Terms and Conditions:) Tj ET`,
       `BT /F2 8.5 Tf 0.3 0.3 0.3 rg 40 417 Td (1. 30% Advance with order confirmation, balance before dispatch.) Tj ET`,
       `BT /F2 8.5 Tf 0.3 0.3 0.3 rg 40 402 Td (2. Dispatch within 3-5 days from Surat Warehouse.) Tj ET`,
       `BT /F2 8.5 Tf 0.3 0.3 0.3 rg 40 387 Td (3. Freight extra at actuals on TO-PAY basis.) Tj ET`,
       `BT /F2 8.5 Tf 0.3 0.3 0.3 rg 40 372 Td (4. Payment via RTGS/NEFT to HDFC Bank A/C: 50200012345678 IFSC: HDFC0001234) Tj ET`,
 
-      // 9. Signatures (Isolated per line)
+      // 9. Signatures
       `BT /F2 9 Tf 0.3 0.3 0.3 rg 70 265 Td (Client's Signature) Tj ET`,
       `BT /F2 9 Tf 0.3 0.3 0.3 rg 370 265 Td (Authorized Signatory - FabricTraders) Tj ET`,
     ].join('\n');
@@ -137,11 +123,9 @@ export async function GET(req: NextRequest) {
 0.5 w
 35 545 525 30 re S
 65 545 0 30 m 65 575 l S
-245 545 0 30 m 245 575 l S
-300 545 0 30 m 300 575 l S
-370 545 0 30 m 370 575 l S
-430 545 0 30 m 430 575 l S
-480 545 0 30 m 480 575 l S
+315 545 0 30 m 315 575 l S
+395 545 0 30 m 395 575 l S
+465 545 0 30 m 465 575 l S
 
 0.98 0.98 0.98 rg
 40 490 270 24 re f
@@ -149,9 +133,11 @@ export async function GET(req: NextRequest) {
 0.5 w
 40 490 270 24 re S
 
+0.96 0.94 0.98 rg
+330 488 230 28 re f
 0.15 0.04 0.26 RG
 1 w
-335 492 225 0 m 560 492 l S
+330 488 230 28 re S
 
 0.6 0.6 0.6 RG
 0.5 w

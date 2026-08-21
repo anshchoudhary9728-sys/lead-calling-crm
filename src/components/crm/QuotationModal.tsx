@@ -26,6 +26,7 @@ import {
 
 import { Lead, Quotation } from '@/types/crm';
 import { FABRIC_SUGGESTIONS } from '@/constants/fabrics';
+import { INDIAN_CITIES_SUGGESTIONS } from '@/constants/cities';
 
 interface QuotationModalProps {
   lead?: Lead | null;
@@ -96,19 +97,13 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
   const [whatsAppErrorMsg, setWhatsAppErrorMsg] = useState('');
   const [activeView, setActiveView] = useState<'EDIT' | 'PREVIEW'>('EDIT');
 
-  // Calculate Totals
+  // Calculate Totals directly from manual amounts
   const subtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.rate) || 0), 0);
+    return items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   }, [items]);
 
-  const totalGst = useMemo(() => {
-    return items.reduce((sum, item) => {
-      const itemTotal = Number(item.quantity) * Number(item.rate) || 0;
-      return sum + (itemTotal * (Number(item.gst_rate) / 100) || 0);
-    }, 0);
-  }, [items]);
-
-  const grandTotal = Math.round(subtotal + totalGst);
+  const totalGst = 0;
+  const grandTotal = subtotal;
 
   // Number to Indian Words Helper
   const inWords = (num: number): string => {
@@ -133,12 +128,12 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
       {
         id: `item-${Date.now()}`,
         name: '',
-        hsn_code: '5208',
-        quantity: 100,
+        hsn_code: '',
+        quantity: 500,
         unit: 'Mtr',
-        rate: 50,
-        gst_rate: 5,
-        amount: 5000,
+        rate: 0,
+        gst_rate: 0,
+        amount: 0,
       },
     ]);
   };
@@ -146,11 +141,6 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
   const handleUpdateItem = (index: number, field: keyof QuotationItem, val: any) => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: val };
-    if (field === 'quantity' || field === 'rate') {
-      const q = field === 'quantity' ? Number(val) : updated[index].quantity;
-      const r = field === 'rate' ? Number(val) : updated[index].rate;
-      updated[index].amount = (q || 0) * (r || 0);
-    }
     setItems(updated);
   };
 
@@ -159,14 +149,13 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
     setItems(items.filter((_, i) => i !== index));
   };
 
-  // Generate WhatsApp Message Text
-  // Generate Clean WhatsApp Message Text (PDF Attached Directly)
-  const formatWhatsAppMessage = (): string => {
+  // Format WhatsApp Plain Text Message
+  const formatWhatsAppMessage = () => {
     const itemListText = items
-      .map((item, idx) => `*${idx + 1}. ${item.name}*\n   Qty: ${item.quantity} ${item.unit} @ ₹${item.rate}/${item.unit} (+${item.gst_rate}% GST) = *₹${item.amount.toLocaleString('en-IN')}*`)
-      .join('\n\n');
+      .map((it, idx) => `• *${it.name || 'Fabric Item'}* — ${it.quantity} ${it.unit} | *₹${(Number(it.amount) || 0).toLocaleString('en-IN')}*`)
+      .join('\n');
 
-    return `*PRICE QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your inquiry. Please find attached our official price quotation PDF.\n\n📋 *ITEMS & RATES:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💵 *Taxable Subtotal:* ₹${subtotal.toLocaleString('en-IN')}\n📊 *GST Tax:* ₹${totalGst.toLocaleString('en-IN')}\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Representative:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Ring Road Market, Surat`;
+    return `*PRICE QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your inquiry. Please find attached our official price quotation PDF.\n\n📋 *ITEMS & PRICING:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Representative:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Ring Road Market, Surat`;
   };
 
   // 1. Save Quotation to Supabase Database
@@ -412,14 +401,21 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                     <label className="block font-bold text-slate-700 mb-1">City / Location</label>
                     <input
                       type="text"
+                      list="quotation-city-suggestions"
+                      placeholder="e.g. Surat, Delhi, Mumbai"
                       value={city}
                       onChange={e => setCity(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-purple-500"
                     />
+                    <datalist id="quotation-city-suggestions">
+                      {INDIAN_CITIES_SUGGESTIONS.map((c, cIdx) => (
+                        <option key={cIdx} value={c} />
+                      ))}
+                    </datalist>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Quotation Date</label>
                     <input
@@ -439,27 +435,20 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2"
                     />
                   </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">GST Tax Format</label>
-                    <select
-                      value={taxType}
-                      onChange={e => setTaxType(e.target.value as any)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-purple-800"
-                    >
-                      <option value="CGST_SGST">Intra-State (CGST + SGST)</option>
-                      <option value="IGST">Inter-State (IGST)</option>
-                    </select>
-                  </div>
                 </div>
               </div>
 
               {/* Items & Pricing Card */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
-                    <DollarSign className="w-4 h-4 mr-1.5 text-purple-700" /> Quotation Fabric Items &amp; Pricing
-                  </h3>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
+                      <DollarSign className="w-4 h-4 mr-1.5 text-purple-700" /> Quotation Fabric Items &amp; Pricing
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Auto-suggest fabric description from 200+ list &bull; Enter manual Unit and Total Amount.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddItem}
@@ -473,30 +462,27 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-100 text-slate-700 text-[11px] font-bold uppercase tracking-wider">
-                        <th className="py-2.5 px-3">#</th>
-                        <th className="py-2.5 px-3 w-2/5">Item / Fabric Description</th>
-                        <th className="py-2.5 px-3">HSN</th>
-                        <th className="py-2.5 px-3">Qty</th>
-                        <th className="py-2.5 px-3">Unit</th>
-                        <th className="py-2.5 px-3">Rate (₹)</th>
-                        <th className="py-2.5 px-3">GST %</th>
-                        <th className="py-2.5 px-3 text-right">Amount (₹)</th>
-                        <th className="py-2.5 px-3 text-center">Action</th>
+                        <th className="py-2.5 px-3 w-10">#</th>
+                        <th className="py-2.5 px-3">Item / Fabric Description (Auto-Suggest)</th>
+                        <th className="py-2.5 px-3 w-28 text-center">Qty</th>
+                        <th className="py-2.5 px-3 w-32 text-center">Unit (Manual)</th>
+                        <th className="py-2.5 px-3 w-40 text-right">Total Amount (₹)</th>
+                        <th className="py-2.5 px-3 w-12 text-center">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {items.map((item, idx) => (
                         <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="py-2 px-3 font-bold text-slate-500">{idx + 1}</td>
-                          <td className="py-2 px-3">
+                          <td className="py-2.5 px-3 font-bold text-slate-500">{idx + 1}</td>
+                          <td className="py-2.5 px-3">
                             <input
                               type="text"
                               required
                               list="fabric-quotation-suggestions"
-                              placeholder="e.g. Cotton Cambric 60x60"
+                              placeholder="Type 1 letter for Fabric suggestions (e.g. Cotton, Cambric, Denim)..."
                               value={item.name}
                               onChange={e => handleUpdateItem(idx, 'name', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-semibold text-slate-900 focus:ring-2 focus:ring-purple-500"
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-semibold text-slate-900 focus:ring-2 focus:ring-purple-500"
                             />
                             <datalist id="fabric-quotation-suggestions">
                               {FABRIC_SUGGESTIONS.map((fab, fIdx) => (
@@ -504,62 +490,35 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                               ))}
                             </datalist>
                           </td>
-                          <td className="py-2 px-3">
-                            <input
-                              type="text"
-                              value={item.hsn_code}
-                              onChange={e => handleUpdateItem(idx, 'hsn_code', e.target.value)}
-                              className="w-16 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-mono text-center"
-                            />
-                          </td>
-                          <td className="py-2 px-3">
+                          <td className="py-2.5 px-3">
                             <input
                               type="number"
                               min="1"
                               value={item.quantity}
-                              onChange={e => handleUpdateItem(idx, 'quantity', e.target.value)}
-                              className="w-20 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold text-center"
+                              onChange={e => handleUpdateItem(idx, 'quantity', Number(e.target.value))}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-center"
                             />
                           </td>
-                          <td className="py-2 px-3">
-                            <select
+                          <td className="py-2.5 px-3">
+                            <input
+                              type="text"
+                              placeholder="e.g. Mtr, Than, Kg, Pcs"
                               value={item.unit}
                               onChange={e => handleUpdateItem(idx, 'unit', e.target.value)}
-                              className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold"
-                            >
-                              <option value="Mtr">Mtr</option>
-                              <option value="Kg">Kg</option>
-                              <option value="Pcs">Pcs</option>
-                              <option value="Roll">Roll</option>
-                              <option value="Than">Than</option>
-                            </select>
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-bold text-center"
+                            />
                           </td>
-                          <td className="py-2 px-3">
+                          <td className="py-2.5 px-3">
                             <input
                               type="number"
                               min="0"
-                              step="0.5"
-                              value={item.rate}
-                              onChange={e => handleUpdateItem(idx, 'rate', e.target.value)}
-                              className="w-20 bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold text-right text-emerald-700"
+                              placeholder="Total ₹"
+                              value={item.amount || ''}
+                              onChange={e => handleUpdateItem(idx, 'amount', Number(e.target.value))}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-black text-right text-emerald-700 font-mono text-sm"
                             />
                           </td>
-                          <td className="py-2 px-3">
-                            <select
-                              value={item.gst_rate}
-                              onChange={e => handleUpdateItem(idx, 'gst_rate', e.target.value)}
-                              className="bg-slate-50 border border-slate-300 rounded-lg p-1.5 font-bold"
-                            >
-                              <option value="0">0%</option>
-                              <option value="5">5%</option>
-                              <option value="12">12%</option>
-                              <option value="18">18%</option>
-                            </select>
-                          </td>
-                          <td className="py-2 px-3 text-right font-black text-slate-900 font-mono">
-                            ₹{item.amount.toLocaleString('en-IN')}
-                          </td>
-                          <td className="py-2 px-3 text-center">
+                          <td className="py-2.5 px-3 text-center">
                             {items.length > 1 && (
                               <button
                                 type="button"
@@ -582,18 +541,10 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                     <p className="font-bold">Amount in Words:</p>
                     <p className="italic">{inWords(grandTotal)}</p>
                   </div>
-                  <div className="space-y-1.5 text-xs text-right min-w-[200px]">
-                    <div className="flex justify-between text-slate-600 font-semibold">
-                      <span>Subtotal (Taxable):</span>
-                      <span className="font-mono">₹{subtotal.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-purple-700 font-semibold">
-                      <span>GST Amount:</span>
-                      <span className="font-mono">+ ₹{totalGst.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-black text-purple-950 pt-1.5 border-t border-purple-200">
+                  <div className="space-y-1 text-xs text-right min-w-[220px]">
+                    <div className="flex justify-between text-base font-black text-purple-950 p-2 bg-white rounded-lg border border-purple-200">
                       <span>Grand Total:</span>
-                      <span className="font-mono text-base text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
+                      <span className="font-mono text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>
@@ -664,25 +615,21 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                 <table className="w-full text-left border-collapse text-xs border border-slate-200">
                   <thead>
                     <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase">
-                      <th className="py-2.5 px-3 border border-purple-900">#</th>
+                      <th className="py-2.5 px-3 border border-purple-900 w-12 text-center">#</th>
                       <th className="py-2.5 px-3 border border-purple-900">Item Description</th>
-                      <th className="py-2.5 px-3 border border-purple-900 text-center">HSN</th>
                       <th className="py-2.5 px-3 border border-purple-900 text-center">Quantity</th>
-                      <th className="py-2.5 px-3 border border-purple-900 text-right">Rate (₹)</th>
-                      <th className="py-2.5 px-3 border border-purple-900 text-center">GST</th>
-                      <th className="py-2.5 px-3 border border-purple-900 text-right">Total (₹)</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-center">Unit</th>
+                      <th className="py-2.5 px-3 border border-purple-900 text-right">Total Amount (₹)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {items.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3 border border-slate-200 font-bold">{idx + 1}</td>
-                        <td className="py-2.5 px-3 border border-slate-200 font-bold text-slate-900">{item.name}</td>
-                        <td className="py-2.5 px-3 border border-slate-200 text-center font-mono">{item.hsn_code}</td>
-                        <td className="py-2.5 px-3 border border-slate-200 text-center font-bold">{item.quantity} {item.unit}</td>
-                        <td className="py-2.5 px-3 border border-slate-200 text-right font-mono">₹{Number(item.rate).toFixed(2)}</td>
-                        <td className="py-2.5 px-3 border border-slate-200 text-center">{item.gst_rate}%</td>
-                        <td className="py-2.5 px-3 border border-slate-200 text-right font-black font-mono">₹{item.amount.toLocaleString('en-IN')}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 font-bold text-center">{idx + 1}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 font-bold text-slate-900">{item.name || 'Fabric Item'}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-center font-bold">{item.quantity}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-center">{item.unit}</td>
+                        <td className="py-2.5 px-3 border border-slate-200 text-right font-black font-mono">₹{(Number(item.amount) || 0).toLocaleString('en-IN')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -698,15 +645,7 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                   </p>
                 </div>
                 <div className="w-64 space-y-1 text-xs text-right">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Taxable Subtotal:</span>
-                    <span className="font-mono font-bold">₹{subtotal.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>GST Tax ({taxType === 'CGST_SGST' ? 'CGST+SGST' : 'IGST'}):</span>
-                    <span className="font-mono font-bold">+ ₹{totalGst.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-black text-[#250a42] pt-2 border-t-2 border-[#250a42]">
+                  <div className="flex justify-between text-sm font-black text-[#250a42] p-2 bg-purple-50 rounded-lg border border-purple-200">
                     <span>Grand Total:</span>
                     <span className="font-mono text-base text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
                   </div>
