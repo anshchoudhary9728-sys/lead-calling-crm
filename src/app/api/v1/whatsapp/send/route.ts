@@ -10,7 +10,18 @@ const WHATSIFY_URL = process.env.WHATSIFY_URL || 'https://api.whatsify.me/api/se
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { recipient, message, type = 'text', priority = 1, document_url, filename } = body;
+    const {
+      recipient,
+      message,
+      type = 'text',
+      priority = 1,
+      media_url,
+      document_url,
+      filename,
+      button_text,
+      button_url,
+      footer = 'FabricTraders Textiles • Surat',
+    } = body;
 
     if (!recipient || !message) {
       return NextResponse.json(
@@ -19,7 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Clean and normalize phone number
+    // Clean and normalize phone number to +91XXXXXXXXXX
     const cleanDigits = String(recipient).replace(/\D/g, '');
     const formattedPhone = cleanDigits.length === 10
       ? `+91${cleanDigits}`
@@ -32,15 +43,31 @@ export async function POST(req: NextRequest) {
     formData.append('secret', WHATSIFY_SECRET);
     formData.append('account', WHATSIFY_ACCOUNT);
     formData.append('recipient', formattedPhone);
-    formData.append('type', type);
-    formData.append('message', message);
     formData.append('priority', String(priority || 1));
+    formData.append('message', message);
+    formData.append('type', type);
 
+    // Optional Media Banner / Image (Top header image like screenshot)
+    if (media_url) {
+      formData.append('media_url', media_url);
+      formData.append('url', media_url);
+    }
     if (document_url) {
       formData.append('document_url', document_url);
     }
     if (filename) {
       formData.append('filename', filename);
+    }
+
+    // Optional Footer & Buttons
+    if (footer) {
+      formData.append('footer', footer);
+    }
+    if (button_text && button_url) {
+      formData.append('button_1', `url|${button_text}|${button_url}`);
+      formData.append('buttons', JSON.stringify([
+        { type: 'url', title: button_text, value: button_url },
+      ]));
     }
 
     // Call Whatsify API
@@ -58,19 +85,41 @@ export async function POST(req: NextRequest) {
     }
 
     if (!whatsifyRes.ok && !responseData.status && !responseData.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: responseData.message || responseData.error || 'Failed to send WhatsApp message via Whatsify',
-          details: responseData,
-        },
-        { status: whatsifyRes.status || 500 }
-      );
+      // Fallback: If 'button' or 'media' type was rejected by the gateway account, retry as rich text message
+      if (type !== 'text') {
+        const fallbackFormData = new FormData();
+        fallbackFormData.append('secret', WHATSIFY_SECRET);
+        fallbackFormData.append('account', WHATSIFY_ACCOUNT);
+        fallbackFormData.append('recipient', formattedPhone);
+        fallbackFormData.append('priority', '1');
+        fallbackFormData.append('type', 'text');
+        fallbackFormData.append('message', message);
+
+        const retryRes = await fetch(WHATSIFY_URL, {
+          method: 'POST',
+          body: fallbackFormData,
+        });
+        const retryText = await retryRes.text();
+        try {
+          responseData = JSON.parse(retryText);
+        } catch {
+          responseData = { raw: retryText };
+        }
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: responseData.message || responseData.error || 'Failed to send WhatsApp message via Whatsify',
+            details: responseData,
+          },
+          { status: whatsifyRes.status || 500 }
+        );
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `WhatsApp message sent successfully to ${formattedPhone}`,
+      message: `WhatsApp quotation message sent successfully to ${formattedPhone}`,
       recipient: formattedPhone,
       whatsify_response: responseData,
       sent_at: new Date().toISOString(),

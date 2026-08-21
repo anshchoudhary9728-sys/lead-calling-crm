@@ -176,14 +176,22 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
     setWhatsAppErrorMsg('');
 
     try {
-      // 1. Send Formatted WhatsApp Message via Whatsify API directly
+      // 1. Send Formatted Interactive WhatsApp Message via Whatsify API
       const message = formatWhatsAppMessage();
+      const firstItem = items[0] || { name: 'Fabric Order', quantity: 100, unit: 'Mtr', rate: 50, gst_rate: 5, amount: 5000 };
+      const pdfUrl = `https://lead-calling-crm.vercel.app/quotation-view?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${firstItem.quantity}&unit=${firstItem.unit}&rate=${firstItem.rate}&gst=${firstItem.gst_rate}&amount=${firstItem.amount}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
+
       const res = await fetch('/api/v1/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipient: mobileNumber,
           message: message,
+          type: 'button',
+          media_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=800&auto=format&fit=crop',
+          button_text: '📄 View & Download Quotation',
+          button_url: pdfUrl,
+          footer: 'FabricTraders Textiles • Surat',
           priority: 1,
         }),
       });
