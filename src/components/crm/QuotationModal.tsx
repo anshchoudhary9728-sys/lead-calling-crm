@@ -157,21 +157,26 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
   };
 
   // Generate WhatsApp Message Text
+  // Generate WhatsApp Message Text with Live PDF Link
   const formatWhatsAppMessage = (): string => {
     const itemListText = items
       .map((item, idx) => `*${idx + 1}. ${item.name}*\n   Qty: ${item.quantity} ${item.unit} @ ₹${item.rate}/${item.unit} (+${item.gst_rate}% GST) = *₹${item.amount.toLocaleString('en-IN')}*`)
       .join('\n\n');
 
-    return `*QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your valuable inquiry. Here is our best price quotation:\n\n📋 *ITEMS & RATES:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💵 *Subtotal:* ₹${subtotal.toLocaleString('en-IN')}\n📊 *GST Tax:* ₹${totalGst.toLocaleString('en-IN')}\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Executive:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Surat, Gujarat`;
+    const firstItem = items[0] || { name: 'Fabric Order', quantity: 100, unit: 'Mtr', rate: 50, gst_rate: 5, amount: 5000 };
+    const pdfUrl = `https://lead-calling-crm.vercel.app/quotation-view?quote=${quoteNumber}&name=${encodeURIComponent(customerName)}&company=${encodeURIComponent(companyName)}&mobile=${encodeURIComponent(mobileNumber)}&city=${encodeURIComponent(city)}&item=${encodeURIComponent(firstItem.name)}&qty=${firstItem.quantity}&unit=${firstItem.unit}&rate=${firstItem.rate}&gst=${firstItem.gst_rate}&amount=${firstItem.amount}&rep=${encodeURIComponent(currentUser?.full_name || 'Rajesh Sharma')}`;
+
+    return `*PRICE QUOTATION: ${quoteNumber}*\n*FABRIC TRADERS TEXTILES (SURAT)*\n━━━━━━━━━━━━━━━━━━━━━\n👤 *Dear ${customerName}${companyName ? ' (' + companyName + ')' : ''},*\nThank you for your valuable inquiry. Here is your official price quotation:\n\n📋 *ITEMS & RATES:*\n${itemListText}\n\n━━━━━━━━━━━━━━━━━━━━━\n💵 *Taxable Subtotal:* ₹${subtotal.toLocaleString('en-IN')}\n📊 *GST Tax:* ₹${totalGst.toLocaleString('en-IN')}\n💰 *GRAND TOTAL:* *₹${grandTotal.toLocaleString('en-IN')}*\n_(${inWords(grandTotal)})_\n━━━━━━━━━━━━━━━━━━━━━\n\n📄 *VIEW & DOWNLOAD OFFICIAL PDF INVOICE:*\n👉 ${pdfUrl}\n\n📌 *Terms & Delivery:*\n• Dispatch in 3-5 days from Surat Warehouse\n• Payment: 30% Advance, balance before dispatch\n• Valid until: ${validUntil}\n\n📞 *Representative:* ${currentUser?.full_name || 'Rajesh Sharma'} (+91 9876543210)\n🌐 *FabricTraders CRM* | Ring Road Market, Surat`;
   };
 
-  // Send WhatsApp via Whatsify API
+  // Direct WhatsApp Send via Whatsify API (No Database Storage)
   const handleSendWhatsify = async () => {
     setIsSendingWhatsApp(true);
     setWhatsAppSuccessMsg('');
     setWhatsAppErrorMsg('');
 
     try {
+      // 1. Send Formatted WhatsApp Message via Whatsify API directly
       const message = formatWhatsAppMessage();
       const res = await fetch('/api/v1/whatsapp/send', {
         method: 'POST',

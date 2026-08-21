@@ -203,11 +203,57 @@ CREATE TABLE notifications (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. ENABLE RLS POLICIES
+-- 10. QUOTATIONS TABLE
+CREATE TABLE IF NOT EXISTS quotations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    quotation_number VARCHAR(50) UNIQUE NOT NULL,
+    lead_id UUID REFERENCES leads(id) ON DELETE SET NULL,
+    lead_unique_id VARCHAR(50),
+    customer_name VARCHAR(150) NOT NULL,
+    company_name VARCHAR(150),
+    mobile_number VARCHAR(20) NOT NULL,
+    email VARCHAR(150),
+    billing_address TEXT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    gstin VARCHAR(50),
+    quotation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    valid_until_date DATE,
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    discount_type VARCHAR(20) DEFAULT 'PERCENTAGE',
+    discount_value NUMERIC(12, 2) DEFAULT 0,
+    discount_amount NUMERIC(12, 2) DEFAULT 0,
+    taxable_amount NUMERIC(12, 2) DEFAULT 0,
+    tax_type VARCHAR(20) DEFAULT 'CGST_SGST',
+    cgst_rate NUMERIC(5, 2) DEFAULT 0,
+    cgst_amount NUMERIC(12, 2) DEFAULT 0,
+    sgst_rate NUMERIC(5, 2) DEFAULT 0,
+    sgst_amount NUMERIC(12, 2) DEFAULT 0,
+    igst_rate NUMERIC(5, 2) DEFAULT 0,
+    igst_amount NUMERIC(12, 2) DEFAULT 0,
+    total_tax NUMERIC(12, 2) DEFAULT 0,
+    shipping_charges NUMERIC(12, 2) DEFAULT 0,
+    round_off NUMERIC(12, 2) DEFAULT 0,
+    grand_total NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    grand_total_words TEXT,
+    terms_and_conditions JSONB DEFAULT '[]'::jsonb,
+    notes TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'SENT',
+    whatsapp_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    whatsapp_sent_at TIMESTAMPTZ,
+    created_by_user_id UUID REFERENCES users(id),
+    created_by_user_name VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. ENABLE RLS POLICIES
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE call_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE followups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public all users" ON users FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public webhook insert leads" ON leads FOR INSERT WITH CHECK (true);
@@ -216,4 +262,6 @@ CREATE POLICY "Allow public update leads" ON leads FOR UPDATE USING (true);
 
 CREATE POLICY "Allow public all call_logs" ON call_logs FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public all followups" ON followups FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all quotations" ON quotations FOR ALL USING (true) WITH CHECK (true);
+
 
