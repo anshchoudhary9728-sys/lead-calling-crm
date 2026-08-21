@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FABRIC_SUGGESTIONS } from '@/constants/fabrics';
+import { useFabrics } from '@/lib/useFabrics';
 import { Sparkles, Check } from 'lucide-react';
 
 interface FabricRequirementInputProps {
@@ -21,19 +21,20 @@ export default function FabricRequirementInput({
   className = '',
   rows = 2,
 }: FabricRequirementInputProps) {
+  const { fabrics } = useFabrics();
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter suggestions based on current input text (triggers from 1 character onwards!)
+  // Filter suggestions based on dynamic fabrics list (triggers from 1 character onwards!)
   const filteredSuggestions = React.useMemo(() => {
     if (!value || !value.trim()) {
-      return FABRIC_SUGGESTIONS.slice(0, 12);
+      return fabrics.slice(0, 12);
     }
     const query = value.toLowerCase().trim();
-    const matches = FABRIC_SUGGESTIONS.filter(f => f.toLowerCase().includes(query));
+    const matches = fabrics.filter(f => f.toLowerCase().includes(query));
     return matches.slice(0, 15);
-  }, [value]);
+  }, [value, fabrics]);
 
   // Close dropdown on outside click
   useEffect(() => {

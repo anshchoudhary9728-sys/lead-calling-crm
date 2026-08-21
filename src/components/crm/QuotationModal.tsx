@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 import { Lead, Quotation } from '@/types/crm';
-import { FABRIC_SUGGESTIONS } from '@/constants/fabrics';
+import { useFabrics } from '@/lib/useFabrics';
 import { INDIAN_CITIES_SUGGESTIONS } from '@/constants/cities';
 
 interface QuotationModalProps {
@@ -37,6 +37,7 @@ interface QuotationModalProps {
 
 export default function QuotationModal({ lead, initialQuotation, onClose, onSuccess }: QuotationModalProps) {
   const { currentUser } = useAuth();
+  const { fabrics } = useFabrics();
 
   // Quotation Metadata
   const todayStr = new Date().toISOString().substring(0, 10);
@@ -485,7 +486,7 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
                               className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-semibold text-slate-900 focus:ring-2 focus:ring-purple-500"
                             />
                             <datalist id="fabric-quotation-suggestions">
-                              {FABRIC_SUGGESTIONS.map((fab, fIdx) => (
+                              {fabrics.map((fab, fIdx) => (
                                 <option key={fIdx} value={fab} />
                               ))}
                             </datalist>

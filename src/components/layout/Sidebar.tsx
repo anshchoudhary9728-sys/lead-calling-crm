@@ -136,7 +136,7 @@ export default function Sidebar() {
       adminOnly: true,
     },
     {
-      name: 'Call Engine Settings',
+      name: 'Fabric & System Settings',
       href: '/settings',
       icon: Settings,
       iconBg: 'bg-slate-600',
