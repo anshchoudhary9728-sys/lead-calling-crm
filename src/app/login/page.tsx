@@ -3,25 +3,27 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, User, ArrowRight, ShieldCheck, Loader2, Sparkles, Key } from 'lucide-react';
+import { Lock, User, ArrowRight, ShieldCheck, Loader2, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const { setCurrentUser } = useAuth();
-  const [username, setUsername] = useState('rajesh.admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e?: React.FormEvent, customUser?: string, customPass?: string) => {
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError('');
 
-    const targetUser = customUser || username;
-    const targetPass = customPass || password;
+    if (!username.trim()) {
+      setError('Please enter username / email address.');
+      return;
+    }
 
-    if (!targetUser.trim()) {
-      setError('Please enter username/email.');
+    if (!password.trim()) {
+      setError('Please enter your password.');
       return;
     }
 
@@ -32,15 +34,15 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: targetUser.trim(),
-          password: targetPass.trim() || 'admin123',
+          username: username.trim(),
+          password: password.trim(),
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setError(data.error || 'Invalid credentials. Please check username and password.');
+        setError(data.error || 'Invalid username or password.');
         return;
       }
 
@@ -51,12 +53,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (uname: string, pwd = 'admin123') => {
-    setUsername(uname);
-    setPassword(pwd);
-    handleLogin(undefined, uname, pwd);
   };
 
   return (
@@ -81,46 +77,16 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Quick Demo Login Badges */}
-        <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200/80 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-wider text-purple-950 flex items-center">
-            <Key className="w-3 h-3 mr-1 text-purple-700" /> 1-Click Quick Login Accounts:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('rajesh.admin')}
-              className="p-2 rounded-xl bg-purple-900 hover:bg-purple-950 text-white text-[11px] font-bold shadow-sm transition text-left"
-            >
-              <div className="font-extrabold flex items-center">
-                👑 Super Admin
-              </div>
-              <div className="text-[9.5px] text-purple-200">rajesh.admin</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('rahul.verma')}
-              className="p-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-[11px] font-bold shadow-sm transition text-left"
-            >
-              <div className="font-extrabold">
-                📞 Sales Executive
-              </div>
-              <div className="text-[9.5px] text-indigo-200">rahul.verma</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Standard Login Form */}
-        <form onSubmit={e => handleLogin(e)} className="space-y-4 text-xs">
+        {/* Standard Clean Login Form */}
+        <form onSubmit={handleLogin} className="space-y-4 text-xs">
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Username / Email</label>
+            <label className="block font-bold text-slate-700 mb-1">Username / Login ID *</label>
             <div className="relative">
               <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 required
-                placeholder="rajesh.admin or rahul.verma"
+                placeholder="Enter Username or Email"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-semibold text-slate-900"
@@ -129,13 +95,13 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Password</label>
+            <label className="block font-bold text-slate-700 mb-1">Login Password *</label>
             <div className="relative">
               <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
                 required
-                placeholder="Enter password (default: admin123)"
+                placeholder="Enter Password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-semibold text-slate-900"
