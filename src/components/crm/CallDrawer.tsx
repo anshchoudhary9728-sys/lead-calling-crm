@@ -34,7 +34,6 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
   const [remarks, setRemarks] = useState('');
   const [followupDate, setFollowupDate] = useState('');
   const [followupTime, setFollowupTime] = useState('11:00');
-  const [dealAmount, setDealAmount] = useState('50000');
   const [callDuration, setCallDuration] = useState('60');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -90,7 +89,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
           current_status: selectedStatus,
           current_planned_call_at: nextPlannedAt,
           next_followup_at: selectedStatus === 'FOLLOW_UP' ? followupISO : null,
-          deal_amount: isConverted ? parseFloat(dealAmount) || 0 : null,
+          deal_amount: isConverted ? (lead.deal_amount || 0) : null,
           remarks: remarks.trim(),
         }),
       });
@@ -113,7 +112,7 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
           remarks: remarks.trim(),
           selected_followup_at: followupISO,
           call_duration_seconds: parseInt(callDuration) || 45,
-          deal_amount: isConverted ? parseFloat(dealAmount) || 0 : undefined,
+          deal_amount: isConverted ? (lead.deal_amount || 0) : undefined,
         });
       } catch (localErr) {
         // Non-critical local store error
@@ -355,22 +354,6 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                     className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Conditional Deal Amount for Converted */}
-            {isConverted && (
-              <div className="bg-emerald-50 p-3 border border-emerald-200 rounded-lg">
-                <label className="block text-xs font-bold text-emerald-900 mb-1 flex items-center">
-                  <DollarSign className="w-3.5 h-3.5 mr-1 text-emerald-700" /> Deal Revenue Amount (INR) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={dealAmount}
-                  onChange={e => setDealAmount(e.target.value)}
-                  placeholder="e.g. 150000"
-                  className="w-full text-xs font-bold bg-white border border-emerald-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
               </div>
             )}
 
