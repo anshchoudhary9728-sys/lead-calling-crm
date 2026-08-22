@@ -25,10 +25,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
       if (current_status === 'CONVERTED') {
         updatePayload.converted_at = new Date().toISOString();
-        if (deal_amount !== undefined) updatePayload.deal_amount = Number(deal_amount) || 0;
         updatePayload.current_planned_call_at = null;
         updatePayload.next_followup_at = null;
       }
+    }
+
+    if (deal_amount !== undefined) {
+      updatePayload.deal_amount = Number(deal_amount) || 0;
     }
 
     if (current_planned_call_at !== undefined) {
