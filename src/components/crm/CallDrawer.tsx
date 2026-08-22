@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Calendar,
   CalendarCheck,
-  DollarSign,
   Send,
   MessageSquare,
   Loader2,
@@ -128,34 +127,34 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex justify-end transition-opacity animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex justify-end transition-opacity animate-in fade-in duration-200">
       <div className="w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col overflow-hidden border-l border-slate-200">
         
         {/* Drawer Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
-          <div>
+        <div className="bg-slate-900 text-white px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between border-b border-slate-800">
+          <div className="min-w-0 pr-2">
             <div className="flex items-center space-x-2">
-              <span className="bg-sky-500/20 text-sky-400 font-mono text-xs font-bold px-2.5 py-0.5 rounded border border-sky-500/30">
+              <span className="bg-sky-500/20 text-sky-400 font-mono text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded border border-sky-500/30 truncate">
                 {lead.unique_lead_id}
               </span>
-              <span className="text-xs text-slate-400 font-medium">{lead.source}</span>
+              <span className="text-[11px] sm:text-xs text-slate-400 font-medium truncate">{lead.source}</span>
             </div>
-            <h2 className="text-lg font-bold text-white mt-1 leading-tight">{lead.customer_name}</h2>
+            <h2 className="text-base sm:text-lg font-bold text-white mt-1 leading-tight truncate">{lead.customer_name}</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition flex-shrink-0"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
         {/* Drawer Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 pb-24 md:pb-6">
           
           {/* CLIENT REQUIREMENT BOX */}
-          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 space-y-1.5">
-            <h3 className="text-xs font-bold text-sky-900 uppercase tracking-wider flex items-center">
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-3.5 sm:p-4 space-y-1">
+            <h3 className="text-[11px] sm:text-xs font-bold text-sky-900 uppercase tracking-wider flex items-center">
               Client Requirement:
             </h3>
             <p className="text-xs text-slate-800 font-medium leading-relaxed">
@@ -164,24 +163,24 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
           </div>
 
           {/* CALL NOW & SEND QUOTATION ACTION BUTTONS */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-sm">
+            <div className="flex flex-col gap-2.5">
               <div>
                 <p className="text-xs font-bold text-slate-800">Direct Actions for this Lead</p>
                 <p className="text-[11px] text-slate-500">Call client phone or create &amp; send instant fabric quotation via WhatsApp.</p>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                 <button
                   type="button"
                   onClick={() => setShowQuotationModal(true)}
-                  className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3.5 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
+                  className="w-full bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center shadow-md transition transform active:scale-95"
                 >
                   <FileText className="w-4 h-4 mr-1.5" />
                   SEND QUOTATION (कोटेशन)
                 </button>
                 <a
                   href={`tel:${lead.mobile_number}`}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center shadow-md transition transform active:scale-95"
                 >
                   <PhoneCall className="w-4 h-4 mr-1.5 animate-bounce" />
                   CALL NOW ({lead.mobile_number})
@@ -191,11 +190,11 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
           </div>
 
           {/* LAST CONVERSATION BOX */}
-          <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-4 space-y-2">
+          <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 sm:p-4 space-y-2">
             <div className="flex items-center justify-between border-b border-amber-200 pb-2">
               <div className="flex items-center space-x-2">
-                <MessageSquare className="w-4 h-4 text-amber-700" />
-                <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                <MessageSquare className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                <h3 className="text-[11px] sm:text-xs font-bold text-amber-900 uppercase tracking-wider">
                   LAST CONVERSATION (Review Before Calling)
                 </h3>
               </div>
@@ -222,45 +221,36 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                 )}
               </div>
             ) : (
-              <p className="text-xs text-amber-800 italic pt-1">
-                No previous call history. This is the <strong>FIRST CALL</strong> attempt for this lead.
-              </p>
+              <p className="text-xs text-amber-800 italic">No previous conversation recorded for this lead. Make the initial call now.</p>
             )}
           </div>
 
-          {/* PREVIOUS REMARKS TIMELINE */}
+          {/* ALL PREVIOUS CALL HISTORY */}
           {previousCalls.length > 1 && (
-            <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
-              <div
-                className="flex items-center justify-between cursor-pointer select-none"
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <button
+                type="button"
                 onClick={() => setShowAllRemarks(!showAllRemarks)}
+                className="w-full bg-slate-100 px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
               >
-                <div className="flex items-center space-x-2">
-                  <History className="w-4 h-4 text-slate-600" />
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    All Previous Remarks History ({previousCalls.length} Attempts)
-                  </h4>
-                </div>
-                <span className="text-xs text-sky-600 font-semibold hover:underline">
-                  {showAllRemarks ? 'Hide' : 'View All'}
+                <span className="flex items-center">
+                  <History className="w-3.5 h-3.5 mr-1.5 text-purple-700" />
+                  Full Conversation History ({previousCalls.length} logs)
                 </span>
-              </div>
+                <span className="text-purple-700 font-bold">{showAllRemarks ? 'Hide ▲' : 'Show ▼'}</span>
+              </button>
 
               {showAllRemarks && (
-                <div className="space-y-3 pt-2 border-t border-slate-100 max-h-48 overflow-y-auto">
-                  {previousCalls.map((call) => (
-                    <div key={call.id} className="text-xs bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1">
-                      <div className="flex justify-between font-semibold text-slate-700">
-                        <span>Attempt #{call.attempt_number} — {call.user_name}</span>
-                        <span className="text-slate-500 font-mono">{formatIST(call.created_at)}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-800">
-                          {call.call_status}
+                <div className="divide-y divide-slate-100 bg-white max-h-48 overflow-y-auto">
+                  {previousCalls.map(c => (
+                    <div key={c.id} className="p-3 text-xs space-y-1 hover:bg-slate-50">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-bold text-slate-900">{formatIST(c.created_at)}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[9px] font-bold">
+                          {c.call_status} ({c.call_duration_seconds}s)
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">{call.call_duration_seconds}s duration</span>
                       </div>
-                      <p className="text-slate-800 font-medium pt-1">"{call.remarks}"</p>
+                      <p className="text-slate-700 italic">"{c.remarks}"</p>
                     </div>
                   ))}
                 </div>
@@ -268,70 +258,70 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
             </div>
           )}
 
-          {/* CALL DISPOSITION FORM */}
-          <form onSubmit={handleSaveCall} className="bg-slate-50 border border-slate-300 p-5 rounded-xl space-y-4">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center">
-              <CheckCircle2 className="w-4 h-4 mr-1.5 text-sky-600" /> Log Call Disposition & Reschedule
+          {/* FORM: UPDATE CALL STATUS & REMARKS */}
+          <form onSubmit={handleSaveCall} className="space-y-4 pt-2 border-t border-slate-200">
+            <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+              Log Current Call Outcome (कॉल परिणाम दर्ज करें)
             </h3>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-lg flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2 text-rose-600 flex-shrink-0" />
-                {errorMsg}
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>{errorMsg}</span>
               </div>
             )}
 
-            {/* 3 Outcome Buttons */}
+            {/* Status Selection Cards */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">
-                Call Outcome <span className="text-rose-500">*</span>
+                Select Call Outcome Status <span className="text-rose-500">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedStatus('FOLLOW_UP')}
-                  className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                  className={`p-2.5 sm:p-3 rounded-xl border-2 text-[11px] sm:text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
                     selectedStatus === 'FOLLOW_UP'
                       ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-sky-300'
                   }`}
                 >
-                  <CalendarCheck className="w-5 h-5" />
-                  Follow-up
-                  <span className="text-[10px] font-normal opacity-70">Set Date &amp; Time</span>
+                  <CalendarCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Follow-up</span>
+                  <span className="text-[9px] sm:text-[10px] font-normal opacity-70">Set Time</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedStatus('NOT_REACHABLE')}
-                  className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                  className={`p-2.5 sm:p-3 rounded-xl border-2 text-[11px] sm:text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
                     selectedStatus === 'NOT_REACHABLE'
                       ? 'border-amber-500 bg-amber-50 text-amber-700 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-amber-300'
                   }`}
                 >
-                  <PhoneCall className="w-5 h-5" />
-                  Not Reachable
-                  <span className="text-[10px] font-normal opacity-70">Auto +4 Hr</span>
+                  <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Not Reach</span>
+                  <span className="text-[9px] sm:text-[10px] font-normal opacity-70">Auto +4 Hr</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedStatus('CONVERTED')}
-                  className={`p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                  className={`p-2.5 sm:p-3 rounded-xl border-2 text-[11px] sm:text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
                     selectedStatus === 'CONVERTED'
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-300'
                   }`}
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  Converted
-                  <span className="text-[10px] font-normal opacity-70">Deal Won 🎉</span>
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Converted</span>
+                  <span className="text-[9px] sm:text-[10px] font-normal opacity-70">Won 🎉</span>
                 </button>
               </div>
             </div>
 
             {/* Conditional Follow-up Date/Time Picker */}
             {isFollowupRequired && (
-              <div className="grid grid-cols-2 gap-3 bg-white p-3 border border-slate-200 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 border border-slate-200 rounded-xl">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center">
                     <Calendar className="w-3 h-3 mr-1 text-sky-600" /> Next Follow-up Date <span className="text-rose-500">*</span>
@@ -367,24 +357,24 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
                 value={remarks}
                 onChange={e => setRemarks(e.target.value)}
                 placeholder="Detail customer response, requirement updates, pricing discussed, or next steps..."
-                className="w-full text-xs bg-white border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none"
               />
             </div>
 
             {/* Save Button */}
-            <div className="pt-2 flex justify-end space-x-3">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-3">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-6 py-2.5 rounded-lg flex items-center shadow-md transition transform active:scale-95 disabled:opacity-50"
+                className="w-full sm:w-auto bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-6 py-2.5 rounded-xl flex items-center justify-center shadow-md transition transform active:scale-95 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -417,4 +407,3 @@ export default function CallDrawer({ lead, onClose, onSuccess }: CallDrawerProps
     </div>
   );
 }
-

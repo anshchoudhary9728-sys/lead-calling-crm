@@ -133,28 +133,28 @@ export default function ConvertedDealsPage() {
   const totalRevenue = filteredLeads.reduce((sum, l) => sum + (Number(l.deal_amount) || 0), 0);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center">
-            <CheckCircle2 className="w-6 h-6 mr-2 text-emerald-600" /> CONVERTED DEALS &amp; WON SALES
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center">
+            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-emerald-600 flex-shrink-0" /> CONVERTED DEALS &amp; WON SALES
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
             Archived converted leads. Deal revenue can be entered once for new deals and locks permanently.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <div className="bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-right shadow-sm">
-            <p className="text-[10px] font-bold text-emerald-700 uppercase">Filtered Deals Revenue</p>
-            <p className="text-lg font-black text-emerald-800 font-mono">₹{totalRevenue.toLocaleString('en-IN')}</p>
+        <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="bg-emerald-50 border border-emerald-200 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-right shadow-sm flex-1 sm:flex-none">
+            <p className="text-[9px] sm:text-[10px] font-bold text-emerald-700 uppercase">Filtered Deals Revenue</p>
+            <p className="text-base sm:text-lg font-black text-emerald-800 font-mono">₹{totalRevenue.toLocaleString('en-IN')}</p>
           </div>
           <button
             onClick={() => {
               setRefreshKey(k => k + 1);
               loadConverted();
             }}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center shadow-sm transition"
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 sm:py-2.5 rounded-xl flex items-center shadow-sm transition"
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh
           </button>

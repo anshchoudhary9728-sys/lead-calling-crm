@@ -82,14 +82,14 @@ export default function FollowupsPage() {
   const now = new Date();
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center">
-            <CalendarCheck className="w-6 h-6 mr-2 text-purple-700" /> FOLLOW-UPS TRACKER
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center">
+            <CalendarCheck className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-700 flex-shrink-0" /> FOLLOW-UPS TRACKER
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
             Scheduled follow-up calls. When called, they will update status or reschedule.
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function FollowupsPage() {
             setRefreshKey(k => k + 1);
             loadFollowups();
           }}
-          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg flex items-center shadow-sm transition"
+          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center justify-center shadow-sm transition w-full sm:w-auto"
         >
           <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh
         </button>

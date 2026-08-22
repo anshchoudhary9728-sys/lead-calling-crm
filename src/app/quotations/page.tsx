@@ -78,31 +78,31 @@ export default function QuotationsDirectoryPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-[#f4f6f9] min-h-screen">
+    <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6 bg-[#f4f6f9] min-h-screen">
       
       {/* HEADER BAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center">
-            <FileText className="w-6 h-6 mr-2 text-purple-700" /> QUOTATIONS &amp; PROFORMA INVOICES
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center">
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-700 flex-shrink-0" /> QUOTATIONS &amp; PROFORMA INVOICES
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
             Complete database of commercial quotations generated for fabric buyers, with Whatsify WhatsApp delivery.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
           <button
             onClick={() => setRefreshKey(k => k + 1)}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center shadow-sm transition"
+            className="flex-1 sm:flex-none bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center justify-center shadow-sm transition"
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh
           </button>
           <button
             onClick={handleCreateNew}
-            className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center shadow-md transition"
+            className="flex-1 sm:flex-none bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl flex items-center justify-center shadow-md transition whitespace-nowrap"
           >
-            <Plus className="w-4 h-4 mr-1.5" /> + CREATE NEW QUOTATION
+            <Plus className="w-4 h-4 mr-1" /> + CREATE QUOTATION
           </button>
         </div>
       </div>

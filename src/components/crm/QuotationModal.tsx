@@ -288,46 +288,46 @@ export default function QuotationModal({ lead, initialQuotation, onClose, onSucc
       <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-purple-900/30">
         
         {/* Header Bar */}
-        <div className="bg-gradient-to-r from-[#1e0a38] via-[#280c4a] to-[#140426] text-white px-6 py-4 flex items-center justify-between border-b border-purple-900/40">
+        <div className="bg-gradient-to-r from-[#1e0a38] via-[#280c4a] to-[#140426] text-white px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-900/40">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg flex-shrink-0">
               <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-base font-black text-white">GENERATE QUOTATION &amp; WHATSAPP</h2>
-                <span className="bg-purple-500/30 text-purple-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-full border border-purple-400/30">
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-black text-white truncate">GENERATE QUOTATION</h2>
+                <span className="bg-purple-500/30 text-purple-300 font-mono text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-full border border-purple-400/30">
                   {quoteNumber}
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200 mt-0.5">
+              <p className="text-[11px] text-purple-200 mt-0.5 truncate">
                 Client: <strong>{customerName}</strong> {lead?.unique_lead_id ? `(${lead.unique_lead_id})` : ''}
               </p>
             </div>
           </div>
 
           {/* Toggle Edit / Preview & Close */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between sm:justify-end space-x-2">
             <div className="bg-purple-950/80 p-1 rounded-xl border border-purple-800/60 flex text-xs font-bold">
               <button
                 onClick={() => setActiveView('EDIT')}
-                className={`px-3 py-1 rounded-lg transition ${activeView === 'EDIT' ? 'bg-purple-600 text-white shadow' : 'text-purple-300 hover:text-white'}`}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg transition text-[11px] sm:text-xs ${activeView === 'EDIT' ? 'bg-purple-600 text-white shadow' : 'text-purple-300 hover:text-white'}`}
               >
                 Edit Form
               </button>
               <button
                 onClick={() => setActiveView('PREVIEW')}
-                className={`px-3 py-1 rounded-lg transition ${activeView === 'PREVIEW' ? 'bg-purple-600 text-white shadow' : 'text-purple-300 hover:text-white'}`}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg transition text-[11px] sm:text-xs ${activeView === 'PREVIEW' ? 'bg-purple-600 text-white shadow' : 'text-purple-300 hover:text-white'}`}
               >
-                PDF Template Preview
+                Preview PDF
               </button>
             </div>
 
             <button
               onClick={onClose}
-              className="p-1.5 text-purple-300 hover:text-white rounded-lg hover:bg-white/10 transition"
+              className="p-1.5 text-purple-300 hover:text-white rounded-lg hover:bg-white/10 transition flex-shrink-0"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>

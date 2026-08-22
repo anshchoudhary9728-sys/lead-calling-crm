@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import CallDrawer from '@/components/crm/CallDrawer';
 import QuotationModal from '@/components/crm/QuotationModal';
-import { Lead, LeadFilterState, LeadSource, User } from '@/types/crm';
+import { Lead, LeadSource, User } from '@/types/crm';
 import { formatIST, calculateTimeDelay } from '@/lib/timezone';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -205,204 +205,228 @@ export default function PlannedCallsDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f4f6f9] overflow-hidden">
-      
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        
-        {/* Page Content */}
-        <main className="p-6 space-y-6">
-          
-          {/* Header Title & Quick Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-900 flex items-center">
-                <PhoneCall className="w-6 h-6 mr-2.5 text-purple-700" />
-                NEW INQUIRY CALL QUEUE
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Fresh incoming leads awaiting first call. Automatically prioritized by time received.
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => {
-                  setRefreshKey(prev => prev + 1);
-                  loadLeads();
-                }}
-                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center shadow-sm transition"
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh Queue
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center shadow-md transition"
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> + ADD MANUAL INQUIRY
-              </button>
-            </div>
-          </div>
+    <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header Title & Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center">
+            <PhoneCall className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-2.5 text-purple-700 flex-shrink-0" />
+            NEW INQUIRY CALL QUEUE
+          </h1>
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+            Fresh incoming leads awaiting first call. Automatically prioritized by time received.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+          <button
+            onClick={() => {
+              setRefreshKey(prev => prev + 1);
+              loadLeads();
+            }}
+            className="flex-1 sm:flex-none bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center justify-center shadow-sm transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Refresh
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex-1 sm:flex-none bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl flex items-center justify-center shadow-md transition whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4 mr-1" /> + ADD INQUIRY
+          </button>
+        </div>
+      </div>
 
-          {/* SUMMARY KPI CARDS GRID */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">New Leads Today</p>
-              <p className="text-xl font-black text-slate-900 mt-1">{kpis.todays_new_leads}</p>
-            </div>
+      {/* SUMMARY KPI CARDS GRID */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">New Leads Today</p>
+          <p className="text-xl font-black text-slate-900 mt-1">{kpis.todays_new_leads}</p>
+        </div>
 
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Inquiry</p>
-              <p className="text-xl font-black text-blue-600 mt-1">{leads.length}</p>
-            </div>
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Inquiry</p>
+          <p className="text-xl font-black text-blue-600 mt-1">{leads.length}</p>
+        </div>
 
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Calls Completed</p>
-              <p className="text-xl font-black text-emerald-600 mt-1">{kpis.calls_completed_today}</p>
-            </div>
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Calls Completed</p>
+          <p className="text-xl font-black text-emerald-600 mt-1">{kpis.calls_completed_today}</p>
+        </div>
 
-            <div className="bg-rose-50 p-3.5 rounded-2xl border border-rose-200 shadow-sm">
-              <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider flex items-center">
-                <AlertTriangle className="w-3 h-3 mr-1 text-rose-600" /> Overdue Calls
-              </p>
-              <p className="text-xl font-black text-rose-700 mt-1">{kpis.overdue_calls}</p>
-            </div>
+        <div className="bg-rose-50 p-3.5 rounded-2xl border border-rose-200 shadow-sm">
+          <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider flex items-center">
+            <AlertTriangle className="w-3 h-3 mr-1 text-rose-600" /> Overdue Calls
+          </p>
+          <p className="text-xl font-black text-rose-700 mt-1">{kpis.overdue_calls}</p>
+        </div>
 
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Not Reachable</p>
-              <p className="text-xl font-black text-amber-600 mt-1">{kpis.not_reachable_count}</p>
-            </div>
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Not Reachable</p>
+          <p className="text-xl font-black text-amber-600 mt-1">{kpis.not_reachable_count}</p>
+        </div>
 
-            <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200 shadow-sm">
-              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Converted Deals</p>
-              <p className="text-xl font-black text-emerald-700 mt-1">{kpis.total_converted}</p>
-            </div>
-          </div>
+        <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200 shadow-sm">
+          <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Converted Deals</p>
+          <p className="text-xl font-black text-emerald-700 mt-1">{kpis.total_converted}</p>
+        </div>
+      </div>
 
-          {/* FILTERS TOOLBAR (Date Calendar, Name, Mobile, Source) */}
-          <CrmQueueFilterBar
-            filters={filters}
-            onFilterChange={setFilters}
-            totalCount={totalQueueCount}
-            filteredCount={leads.length}
-            placeholder="Search New Inquiries by Name, Mobile, Unique ID, Fabric..."
-            dateLabel="Filter by Inquiry / Planned Call Date"
-          />
+      {/* FILTERS TOOLBAR (Date Calendar, Name, Mobile, Source) */}
+      <CrmQueueFilterBar
+        filters={filters}
+        onFilterChange={setFilters}
+        totalCount={totalQueueCount}
+        filteredCount={leads.length}
+        placeholder="Search New Inquiries by Name, Mobile, Unique ID, Fabric..."
+        dateLabel="Filter by Inquiry / Planned Call Date"
+      />
 
-          {/* PLANNED CALLS PRIORITY TABLE */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase tracking-wider">
-                    <th className="py-3.5 px-4 whitespace-nowrap">Unique ID</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Planned Time</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Time Delay</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Client Name</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Contact Number</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Location</th>
-                    <th className="py-3.5 px-4">Requirement</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Source</th>
-                    <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
-                    <th className="py-3.5 px-4 text-center whitespace-nowrap">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                  {leads.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="py-12 text-center text-slate-400 italic">
-                        No pending new inquiries! All calls have been handled and transferred.
+      {/* PLANNED CALLS PRIORITY TABLE */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#250a42] text-white text-[11px] font-bold uppercase tracking-wider">
+                <th className="py-3.5 px-4 whitespace-nowrap">Unique ID</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Planned Time</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Time Delay</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Client Name</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Contact Number</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Location</th>
+                <th className="py-3.5 px-4">Requirement</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Source</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+              {leads.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-12 text-center text-slate-400 italic">
+                    No pending new inquiries! All calls have been handled and transferred.
+                  </td>
+                </tr>
+              ) : (
+                leads.map(lead => {
+                  const delay = calculateTimeDelay(lead.current_planned_call_at);
+                  const isOverdue = delay.status === 'OVERDUE';
+
+                  return (
+                    <tr
+                      key={lead.id}
+                      className={`hover:bg-slate-50 transition ${
+                        isOverdue ? 'bg-rose-50/60' : ''
+                      }`}
+                    >
+                      {/* Unique Lead ID */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-purple-700 whitespace-nowrap">
+                        {lead.unique_lead_id}
+                      </td>
+
+                      {/* Planned Call Time */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="font-semibold text-slate-800">
+                          {lead.current_planned_call_at ? formatIST(lead.current_planned_call_at) : '—'}
+                        </span>
+                      </td>
+
+                      {/* Dynamic Time Delay Indicator */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isOverdue
+                              ? 'bg-rose-100 text-rose-700 animate-pulse'
+                              : delay.status === 'PENDING'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {delay.status === 'OVERDUE' && <AlertTriangle className="w-3 h-3 mr-1 text-rose-600" />}
+                          {delay.label}
+                        </span>
+                      </td>
+
+                      {/* Client Name & Company */}
+                      <td className="py-3.5 px-4">
+                        <p className="font-bold text-slate-900 leading-tight">{lead.customer_name}</p>
+                        {lead.company_name && (
+                          <p className="text-[11px] text-slate-400 font-medium">{lead.company_name}</p>
+                        )}
+                      </td>
+
+                      {/* Mobile */}
+                      <td className="py-3.5 px-4 font-mono font-semibold whitespace-nowrap">
+                        <a
+                          href={`tel:${lead.mobile_number}`}
+                          className="text-purple-700 hover:underline"
+                        >
+                          {lead.mobile_number}
+                        </a>
+                      </td>
+
+                      {/* Location */}
+                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600">
+                        <span className="flex items-center">
+                          <MapPin className="w-3 h-3 mr-1 text-slate-400" />
+                          {lead.city || 'Surat'}
+                        </span>
+                      </td>
+
+                      {/* Product Requirement */}
+                      <td className="py-3.5 px-4 max-w-xs truncate text-slate-700" title={lead.client_requirement || lead.enquiry_message}>
+                        {lead.client_requirement || lead.enquiry_message || 'General inquiry'}
+                      </td>
+
+                      {/* Source */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
+                          {lead.source}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                          {lead.current_status}
+                        </span>
+                      </td>
+
+                      {/* Action: Open Call Drawer & Quotation Modal */}
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center space-x-1.5">
+                          <button
+                            onClick={() => setSelectedLeadForCall(lead)}
+                            className="bg-purple-700 hover:bg-purple-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center shadow-sm transition"
+                          >
+                            <PhoneCall className="w-3.5 h-3.5 mr-1" /> Call
+                          </button>
+                          <button
+                            onClick={() => setSelectedLeadForQuote(lead)}
+                            className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center shadow-sm transition"
+                          >
+                            <FileText className="w-3.5 h-3.5 mr-1" /> Quote
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  ) : (
-                    leads.map(lead => {
-                      const delay = calculateTimeDelay(lead.current_planned_call_at);
-                      return (
-                        <tr key={lead.id} className="hover:bg-slate-50 transition">
-                          <td className="py-3.5 px-4 font-mono font-bold text-purple-700 whitespace-nowrap">
-                            {lead.unique_lead_id}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="font-semibold text-slate-800">
-                              {lead.current_planned_call_at ? formatIST(lead.current_planned_call_at) : 'Immediate'}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            {delay.isOverdue ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
-                                {delay.text}
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                                {delay.text}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
-                            {lead.customer_name}
-                          </td>
-                          <td className="py-3.5 px-4 font-semibold text-slate-800 whitespace-nowrap">
-                            <a href={`tel:${lead.mobile_number}`} className="text-purple-700 hover:underline">
-                              {lead.mobile_number}
-                            </a>
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="flex items-center text-slate-700 font-semibold">
-                              <MapPin className="w-3.5 h-3.5 mr-1 text-purple-600 shrink-0" />
-                              {lead.city || 'Surat'}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 max-w-[200px] truncate text-slate-600">
-                            {lead.client_requirement || lead.enquiry_message || '—'}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
-                              {lead.source}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
-                              {lead.current_status}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                            <div className="flex items-center justify-center space-x-1.5">
-                              <button
-                                onClick={() => setSelectedLeadForCall(lead)}
-                                className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center justify-center shadow-sm transition"
-                              >
-                                <PhoneCall className="w-3.5 h-3.5 mr-1" />
-                                CALL
-                              </button>
-                              <button
-                                onClick={() => setSelectedLeadForQuote(lead)}
-                                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center justify-center shadow-sm transition"
-                              >
-                                <FileText className="w-3.5 h-3.5 mr-1" />
-                                QUOTE
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </main>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* MANUAL INQUIRY MODAL */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full p-4 sm:p-6 space-y-4 border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center">
                 <UserPlus className="w-4 h-4 mr-2 text-purple-700" />
                 CREATE NEW MANUAL INQUIRY / LEAD
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -414,7 +438,7 @@ export default function PlannedCallsDashboard() {
             )}
 
             <form onSubmit={handleCreateManualLead} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Customer / Client Name *</label>
                   <input
@@ -439,7 +463,7 @@ export default function PlannedCallsDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Company / Firm Name</label>
                   <input
@@ -505,15 +529,14 @@ export default function PlannedCallsDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-purple-700 hover:bg-purple-800 text-white font-bold px-5 py-2 rounded-lg shadow-md flex items-center disabled:opacity-50"
+                  className="bg-purple-700 hover:bg-purple-800 text-white font-bold px-5 py-2 rounded-lg flex items-center shadow-md disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
@@ -556,4 +579,3 @@ export default function PlannedCallsDashboard() {
     </div>
   );
 }
-

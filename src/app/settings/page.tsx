@@ -147,29 +147,29 @@ export default function SettingsPage() {
   }, [sources, sourceSearchQuery]);
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6 max-w-5xl">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-slate-900 flex items-center">
-            <Settings className="w-6 h-6 mr-2 text-purple-700" /> SYSTEM &amp; CRM SETTINGS
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 flex items-center">
+            <Settings className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-700 flex-shrink-0" /> SYSTEM &amp; CRM SETTINGS
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
             Admin management for Master Fabric Catalog, Dynamic Lead Sources, and Call Scheduling Rules.
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-bold space-x-1">
+        <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-bold space-x-1 overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab('FABRICS')}
-            className={`flex items-center px-3.5 py-2 rounded-lg transition ${
+            className={`flex items-center px-3 py-2 rounded-lg transition whitespace-nowrap text-[11px] sm:text-xs ${
               activeTab === 'FABRICS'
                 ? 'bg-purple-700 text-white shadow-md'
                 : 'text-slate-700 hover:text-slate-950'
             }`}
           >
-            <Layers className="w-3.5 h-3.5 mr-1.5" />
+            <Layers className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
             Fabric Catalog ({fabrics.length})
           </button>
           <button
